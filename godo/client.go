@@ -22,7 +22,7 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-// OvcClient struct for all Terraform provider methods
+// OvcClient struct
 type OvcClient struct {
 	JWT       string
 	ServerURL string
