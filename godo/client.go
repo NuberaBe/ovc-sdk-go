@@ -28,10 +28,11 @@ type OvcClient struct {
 	ServerURL string
 	Access    string
 
-	Machines    MachineService
-	CloudSpaces CloudSpaceService
-	Accounts    AccountService
-	Disks       DiskService
+	Machines     MachineService
+	CloudSpaces  CloudSpaceService
+	Accounts     AccountService
+	Disks        DiskService
+	Portforwards ForwardingService
 }
 
 // Do sends and API Request and returns the body as an array of bytes
