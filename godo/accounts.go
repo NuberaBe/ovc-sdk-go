@@ -37,6 +37,8 @@ type AccountService interface {
 	List() (*AccountList, error)
 }
 
+var _ AccountService = &AccountServiceOp{}
+
 // AccountServiceOp handles communication with the account related methods of the
 // OVC API
 type AccountServiceOp struct {
