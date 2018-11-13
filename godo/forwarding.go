@@ -39,6 +39,7 @@ type ForwardingService interface {
 	Create(*PortForwardingConfig) error
 	List(*PortForwardingConfig) (*PortForwardingList, error)
 	Delete(*PortForwardingConfig) error
+	DeleteByPort(int, string, int) error
 	Update(*PortForwardingConfig) error
 }
 
@@ -49,16 +50,16 @@ type ForwardingServiceOp struct {
 }
 
 // Create a new portforward
-func (c *OvcClient) Create(portForwardingConfig *PortForwardingConfig) error {
+func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig) error {
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/portforwarding/create", bytes.NewBuffer(portForwardingJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/create", bytes.NewBuffer(portForwardingJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -66,16 +67,16 @@ func (c *OvcClient) Create(portForwardingConfig *PortForwardingConfig) error {
 }
 
 // Update an existing portforward
-func (c *OvcClient) Update(portForwardingConfig *PortForwardingConfig) error {
+func (s *ForwardingServiceOp) Update(portForwardingConfig *PortForwardingConfig) error {
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/portforwarding/updateByPort", bytes.NewBuffer(portForwardingJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/updateByPort", bytes.NewBuffer(portForwardingJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -83,16 +84,16 @@ func (c *OvcClient) Update(portForwardingConfig *PortForwardingConfig) error {
 }
 
 // Delete an existing portforward
-func (c *OvcClient) Delete(portForwardingConfig *PortForwardingConfig) error {
+func (s *ForwardingServiceOp) Delete(portForwardingConfig *PortForwardingConfig) error {
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/portforwarding/deleteByPort", bytes.NewBuffer(portForwardingJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/deleteByPort", bytes.NewBuffer(portForwardingJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -100,13 +101,13 @@ func (c *OvcClient) Delete(portForwardingConfig *PortForwardingConfig) error {
 }
 
 // List all portforwards
-func (c *OvcClient) List(portForwardingConfig *PortForwardingConfig) (*PortForwardingList, error) {
+func (s *ForwardingServiceOp) List(portForwardingConfig *PortForwardingConfig) (*PortForwardingList, error) {
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/portforwarding/list", bytes.NewBuffer(portForwardingJSON))
-	body, err := c.Do(req)
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/list", bytes.NewBuffer(portForwardingJSON))
+	body, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -116,4 +117,25 @@ func (c *OvcClient) List(portForwardingConfig *PortForwardingConfig) (*PortForwa
 		return nil, err
 	}
 	return portForwardingList, nil
+}
+
+// DeleteByPort Deletes a portforward by publicIP, public port and cloudspace ID
+func (s *ForwardingServiceOp) DeleteByPort(publicPort int, publicIP string, cloudSpaceID int) error {
+	pfMap := make(map[string]interface{})
+	pfMap["publicIp"] = publicIP
+	pfMap["publicPort"] = publicPort
+	pfMap["cloudspaceId"] = cloudSpaceID
+	pfJSON, err := json.Marshal(pfMap)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/deleteByPort", bytes.NewBuffer(pfJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -109,6 +109,7 @@ type MachineService interface {
 	Create(*MachineConfig) (string, error)
 	Update(*MachineConfig) error
 	Delete(*MachineConfig) error
+	DeleteByID(int) error
 	Template(string, *MachineConfig) error
 }
 
@@ -204,6 +205,25 @@ func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) 
 // Delete an existing machine
 func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
 	machineJSON, err := json.Marshal(*machineConfig)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteByID deletes an existing machine by ID
+func (s *MachineServiceOp) DeleteByID(machineID int) error {
+	machineMap := make(map[string]interface{})
+	machineMap["machineId"] = machineID
+	machineJSON, err := json.Marshal(machineMap)
 	if err != nil {
 		return err
 	}
