@@ -224,6 +224,7 @@ func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
 func (s *MachineServiceOp) DeleteByID(machineID int) error {
 	machineMap := make(map[string]interface{})
 	machineMap["machineId"] = machineID
+	machineMap["permanently"] = true
 	machineJSON, err := json.Marshal(machineMap)
 	if err != nil {
 		return err
