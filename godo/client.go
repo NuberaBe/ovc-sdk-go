@@ -33,6 +33,7 @@ type OvcClient struct {
 	Accounts     AccountService
 	Disks        DiskService
 	Portforwards ForwardingService
+	Templates    TemplateService
 }
 
 // Do sends and API Request and returns the body as an array of bytes
