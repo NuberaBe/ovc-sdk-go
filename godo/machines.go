@@ -50,7 +50,7 @@ type MachineConfig struct {
 	Permanently  string        `json:"permanently"`
 }
 
-// MachineInfo is used to display machine information
+// MachineInfo contains all information related to a cloudspace
 type MachineInfo struct {
 	Cloudspaceid int    `json:"cloudspaceid"`
 	Status       string `json:"status"`
@@ -112,19 +112,25 @@ type MachineService interface {
 	Template(string, *MachineConfig) error
 }
 
+// MachineServiceOp handles communication with the machine related methods of the
+// OVC API
+type MachineServiceOp struct {
+	client *OvcClient
+}
+
 // List all machines
-func (c *OvcClient) List(cloudSpaceID int) (*MachineList, error) {
+func (s *MachineServiceOp) List(cloudSpaceID int) (*MachineList, error) {
 	cloudSpaceIDMap := make(map[string]interface{})
 	cloudSpaceIDMap["cloudspaceId"] = cloudSpaceID
 	cloudSpaceIDJSON, err := json.Marshal(cloudSpaceIDMap)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/list", bytes.NewBuffer(cloudSpaceIDJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/list", bytes.NewBuffer(cloudSpaceIDJSON))
 	if err != nil {
 		return nil, err
 	}
-	body, err := c.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -137,18 +143,18 @@ func (c *OvcClient) List(cloudSpaceID int) (*MachineList, error) {
 }
 
 // Get individual machine
-func (c *OvcClient) Get(id string) (*MachineInfo, error) {
+func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
 	machineIDMap := make(map[string]interface{})
 	machineIDMap["machineId"], _ = strconv.Atoi(id)
 	machineIDJson, err := json.Marshal(machineIDMap)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/get", bytes.NewBuffer(machineIDJson))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/get", bytes.NewBuffer(machineIDJson))
 	if err != nil {
 		return nil, err
 	}
-	body, err := c.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -161,17 +167,17 @@ func (c *OvcClient) Get(id string) (*MachineInfo, error) {
 }
 
 // Create a new machine
-func (c *OvcClient) Create(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Create(machineConfig *MachineConfig) error {
 	machineJSON, err := json.Marshal(*machineConfig)
 	log.Println(string(machineJSON))
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/create", bytes.NewBuffer(machineJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/create", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -179,16 +185,16 @@ func (c *OvcClient) Create(machineConfig *MachineConfig) error {
 }
 
 // Update an existing machine
-func (c *OvcClient) Update(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Update(machineConfig *MachineConfig) error {
 	machineJSON, err := json.Marshal(*machineConfig)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/update", bytes.NewBuffer(machineJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/update", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -196,16 +202,16 @@ func (c *OvcClient) Update(machineConfig *MachineConfig) error {
 }
 
 // Delete an existing machine
-func (c *OvcClient) Delete(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
 	machineJSON, err := json.Marshal(*machineConfig)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -213,7 +219,7 @@ func (c *OvcClient) Delete(machineConfig *MachineConfig) error {
 }
 
 // Template creates an image of the existing machine
-func (c *OvcClient) Template(machineConfig *MachineConfig, templateName string) error {
+func (s *MachineServiceOp) Template(machineConfig *MachineConfig, templateName string) error {
 	machineMap := make(map[string]interface{})
 	machineMap["machineId"] = machineConfig.MachineID
 	machineMap["templateName"] = templateName
@@ -221,11 +227,11 @@ func (c *OvcClient) Template(machineConfig *MachineConfig, templateName string) 
 	if err != nil {
 		return nil
 	}
-	req, err := http.NewRequest("POST", c.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
 		return err
 	}

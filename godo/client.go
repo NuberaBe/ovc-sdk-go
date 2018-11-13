@@ -27,9 +27,11 @@ type OvcClient struct {
 	ServerURL string
 	Access    string
 
-	Machines MachineService
+	Machines    MachineService
+	CloudSpaces CloudSpaceService
 }
 
+// Do sends and API Request and returns the body as an array of bytes
 func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 	var body []byte
 	client := &http.Client{}
@@ -52,6 +54,7 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 	return body, nil
 }
 
+// NewLogin logs into the itsyouonline platform using the comfig struct
 func NewLogin(c *Config) string {
 	authForm := url.Values{}
 	authForm.Add("grant_type", "client_credentials")
@@ -72,4 +75,10 @@ func NewLogin(c *Config) string {
 	jwt := string(bodyBytes)
 	defer resp.Body.Close()
 	return jwt
+}
+
+func (c *OvcClient) getLocation() string {
+	u, _ := url.Parse(c.ServerURL)
+	hostName := u.Hostname()
+	return hostName[:strings.IndexByte(hostName, '.')]
 }
