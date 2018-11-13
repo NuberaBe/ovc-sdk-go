@@ -238,16 +238,16 @@ func (s *MachineServiceOp) DeleteByID(machineID int) error {
 	return nil
 }
 
-// Template creates an image of the existing machine
-func (s *MachineServiceOp) Template(machineConfig *MachineConfig, templateName string) error {
+// Template creates an image of the existing machine by ID
+func (s *MachineServiceOp) Template(machineID int, templateName string) error {
 	machineMap := make(map[string]interface{})
-	machineMap["machineId"] = machineConfig.MachineID
+	machineMap["machineId"] = machineID
 	machineMap["templateName"] = templateName
 	machineJSON, err := json.Marshal(machineMap)
 	if err != nil {
 		return nil
 	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/delete", bytes.NewBuffer(machineJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/createTemplate", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
