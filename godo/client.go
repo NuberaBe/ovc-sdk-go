@@ -59,8 +59,24 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 	return body, nil
 }
 
+// NewClient returns a OpenVCloud API Client
+func NewClient(c *Config, url string) *OvcClient {
+	client := &OvcClient{}
+	client.JWT = NewLogin(c)
+	client.ServerURL = url
+
+	client.Machines = &MachineServiceOp{client: client}
+	client.CloudSpaces = &CloudSpaceServiceOp{client: client}
+	client.Accounts = &AccountServiceOp{client: client}
+	client.Disks = &DiskServiceOp{client: client}
+	client.Portforwards = &ForwardingServiceOp{client: client}
+	client.Templates = &TemplateServiceOp{client: client}
+	return client
+}
+
 // NewLogin logs into the itsyouonline platform using the comfig struct
 func NewLogin(c *Config) string {
+
 	authForm := url.Values{}
 	authForm.Add("grant_type", "client_credentials")
 	authForm.Add("client_id", c.ClientID)
