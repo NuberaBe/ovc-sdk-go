@@ -119,6 +119,8 @@ type MachineServiceOp struct {
 	client *OvcClient
 }
 
+var _ MachineService = &MachineServiceOp{}
+
 // List all machines
 func (s *MachineServiceOp) List(cloudSpaceID int) (*MachineList, error) {
 	cloudSpaceIDMap := make(map[string]interface{})
