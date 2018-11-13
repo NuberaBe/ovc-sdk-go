@@ -187,20 +187,20 @@ func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) 
 }
 
 // Update an existing machine
-func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) {
+func (s *MachineServiceOp) Update(machineConfig *MachineConfig) error {
 	machineJSON, err := json.Marshal(*machineConfig)
 	if err != nil {
-		return "", err
+		return err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/update", bytes.NewBuffer(machineJSON))
 	if err != nil {
-		return "", err
+		return err
 	}
-	body, err := s.client.Do(req)
+	_, err = s.client.Do(req)
 	if err != nil {
-		return string(body), err
+		return err
 	}
-	return "", err
+	return nil
 }
 
 // Delete an existing machine
