@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
+// Config used to connect to the API
 type Config struct {
 	Hostname     string
-	ClientId     string
+	ClientID     string
 	ClientSecret string
 }
 
@@ -29,6 +30,8 @@ type OvcClient struct {
 
 	Machines    MachineService
 	CloudSpaces CloudSpaceService
+	Accounts    AccountService
+	Disks       DiskService
 }
 
 // Do sends and API Request and returns the body as an array of bytes
@@ -58,7 +61,7 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 func NewLogin(c *Config) string {
 	authForm := url.Values{}
 	authForm.Add("grant_type", "client_credentials")
-	authForm.Add("client_id", c.ClientId)
+	authForm.Add("client_id", c.ClientID)
 	authForm.Add("client_secret", c.ClientSecret)
 	authForm.Add("response_type", "id_token")
 	req, _ := http.NewRequest("POST", "https://itsyou.online/v1/oauth/access_token", strings.NewReader(authForm.Encode()))
