@@ -12,11 +12,29 @@ type Account struct {
 	Name string `json:"name"`
 }
 
+// AccountList is a list of accounts
+// Returned when using the List method
+type AccountList []struct {
+	ID           int    `json:"id"`
+	UpdateTime   int    `json:"updateTime"`
+	CreationTime int    `json:"creationTime"`
+	Name         string `json:"name"`
+	ACL          []struct {
+		Status      string `json:"status"`
+		Right       string `json:"right"`
+		Explicit    bool   `json:"explicit"`
+		UserGroupID string `json:"userGroupId"`
+		GUID        string `json:"guid"`
+		Type        string `json:"type"`
+	} `json:"acl"`
+}
+
 // AccountService is an interface for interfacing with the Account
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type AccountService interface {
 	GetIDByName(string) (int, error)
+	List() (*AccountList, error)
 }
 
 // AccountServiceOp handles communication with the account related methods of the
@@ -27,20 +45,32 @@ type AccountServiceOp struct {
 
 // GetIDByName returns the account ID based on the account name
 func (s *AccountServiceOp) GetIDByName(account string) (int, error) {
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/accounts/list", nil)
+	var accounts, err = s.List()
 	if err != nil {
 		return 0, err
 	}
-	body, err := s.client.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	var accounts = new([]Account)
-	err = json.Unmarshal(body, &accounts)
 	for _, acc := range *accounts {
 		if acc.Name == account {
 			return acc.ID, nil
 		}
 	}
 	return -1, errors.New("Account not found")
+}
+
+// List all accounts
+func (s *AccountServiceOp) List() (*AccountList, error) {
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/accounts/list", nil)
+	if err != nil {
+		return nil, err
+	}
+	body, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	var accounts = new(AccountList)
+	err = json.Unmarshal(body, &accounts)
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
 }
