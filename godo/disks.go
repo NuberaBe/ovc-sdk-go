@@ -79,7 +79,7 @@ type DiskList []struct {
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type DiskService interface {
 	List(int) (*DiskList, error)
-	Get(id string) (*DiskInfo, error)
+	Get(string) (*DiskInfo, error)
 	Create(*DiskConfig) error
 	Delete(*DiskDeleteConfig) error
 }

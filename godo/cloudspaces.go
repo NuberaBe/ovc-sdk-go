@@ -100,7 +100,7 @@ type CloudSpaceService interface {
 	Get(string) (*CloudSpace, error)
 	Create(*CloudSpaceConfig) error
 	Update(*CloudSpaceConfig) error
-	Delete(*CloudSpaceConfig) error
+	Delete(*CloudSpaceDeleteConfig) error
 }
 
 // CloudSpaceServiceOp handles communication with the machine related methods of the

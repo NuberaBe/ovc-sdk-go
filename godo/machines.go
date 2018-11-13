@@ -104,7 +104,7 @@ type MachineInfo struct {
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type MachineService interface {
 	List(int) (*MachineList, error)
-	Get(id string) (*MachineInfo, error)
+	Get(string) (*MachineInfo, error)
 	Create(*MachineConfig) (string, error)
 	Update(*MachineConfig) error
 	Delete(*MachineConfig) error
