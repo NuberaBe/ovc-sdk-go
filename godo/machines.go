@@ -3,7 +3,6 @@ package godo
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -171,7 +170,6 @@ func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
 // Create a new machine
 func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) {
 	machineJSON, err := json.Marshal(*machineConfig)
-	log.Println(string(machineJSON))
 	if err != nil {
 		return "", err
 	}
