@@ -26,6 +26,8 @@ type TemplateService interface {
 	List(int) (*TemplateList, error)
 }
 
+var _ TemplateService = &TemplateServiceOp{}
+
 // TemplateServiceOp handles communication with the image related methods of the
 // OVC API
 type TemplateServiceOp struct {

@@ -109,6 +109,8 @@ type CloudSpaceServiceOp struct {
 	client *OvcClient
 }
 
+var _ CloudSpaceService = &CloudSpaceServiceOp{}
+
 // Get individual CloudSpace
 func (s *CloudSpaceServiceOp) Get(cloudSpaceID string) (*CloudSpace, error) {
 	cloudSpaceIDMap := make(map[string]interface{})

@@ -49,6 +49,8 @@ type ForwardingServiceOp struct {
 	client *OvcClient
 }
 
+var _ ForwardingService = &ForwardingServiceOp{}
+
 // Create a new portforward
 func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig) error {
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)

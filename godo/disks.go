@@ -90,6 +90,8 @@ type DiskServiceOp struct {
 	client *OvcClient
 }
 
+var _ DiskService = &DiskServiceOp{}
+
 // List all disks
 func (s *DiskServiceOp) List(accountID int) (*DiskList, error) {
 	diskMap := make(map[string]interface{})
