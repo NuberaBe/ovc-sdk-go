@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+// TemplateList is a list of templates
+// Returned when using the List method
 type TemplateList []struct {
 	Username    interface{} `json:"username"`
 	Status      string      `json:"status"`
@@ -17,14 +19,20 @@ type TemplateList []struct {
 	AccountID   int         `json:"accountId"`
 }
 
+// TemplateService is an interface for interfacing with the Images
+// endpoints of the OVC API
+// See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type TemplateService interface {
 	List(int) (*TemplateList, error)
 }
 
+// TemplateServiceOp handles communication with the image related methods of the
+// OVC API
 type TemplateServiceOp struct {
 	client *OvcClient
 }
 
+// List all images
 func (s *TemplateServiceOp) List(accountID int) (*TemplateList, error) {
 	templateMap := make(map[string]interface{})
 	templateMap["accountId"] = 4
