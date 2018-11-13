@@ -167,21 +167,21 @@ func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
 }
 
 // Create a new machine
-func (s *MachineServiceOp) Create(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) {
 	machineJSON, err := json.Marshal(*machineConfig)
 	log.Println(string(machineJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/create", bytes.NewBuffer(machineJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = s.client.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return string(body), nil
 }
 
 // Update an existing machine
