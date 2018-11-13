@@ -106,7 +106,7 @@ type MachineInfo struct {
 type MachineService interface {
 	List() (*MachineList, error)
 	Get(id string) (*MachineInfo, error)
-	Create(*MachineConfig) error
+	Create(*MachineConfig) (string, error)
 	Update(*MachineConfig) error
 	Delete(*MachineConfig) error
 	Template(string, *MachineConfig) error
@@ -185,20 +185,20 @@ func (s *MachineServiceOp) Create(machineConfig *MachineConfig) error {
 }
 
 // Update an existing machine
-func (s *MachineServiceOp) Update(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) {
 	machineJSON, err := json.Marshal(*machineConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/update", bytes.NewBuffer(machineJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = s.client.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return string(body), err
 	}
-	return err
+	return "", err
 }
 
 // Delete an existing machine
