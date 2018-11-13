@@ -110,7 +110,8 @@ type MachineService interface {
 	Update(*MachineConfig) error
 	Delete(*MachineConfig) error
 	DeleteByID(int) error
-	Template(string, *MachineConfig) error
+	Template(int, string) error
+	Shutdown(int) error
 }
 
 // MachineServiceOp handles communication with the machine related methods of the
@@ -248,6 +249,26 @@ func (s *MachineServiceOp) Template(machineID int, templateName string) error {
 		return nil
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/createTemplate", bytes.NewBuffer(machineJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Shutdown shuts a machine down
+func (s *MachineServiceOp) Shutdown(machineID int) error {
+	machineMap := make(map[string]interface{})
+	machineMap["machineId"] = machineID
+	machineMap["force"] = false
+	machineJSON, err := json.Marshal(machineMap)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/stop", bytes.NewBuffer(machineJSON))
 	if err != nil {
 		return err
 	}
