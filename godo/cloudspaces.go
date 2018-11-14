@@ -3,6 +3,7 @@ package godo
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -97,8 +98,10 @@ type CloudSpaceDeleteConfig struct {
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type CloudSpaceService interface {
+	List() (*CloudSpaceList, error)
 	Get(string) (*CloudSpace, error)
-	Create(*CloudSpaceConfig) error
+	GetByNameAndAccount(string, string) (*CloudSpace, error)
+	Create(*CloudSpaceConfig) (string, error)
 	Update(*CloudSpaceConfig) error
 	Delete(*CloudSpaceDeleteConfig) error
 }
@@ -110,6 +113,27 @@ type CloudSpaceServiceOp struct {
 }
 
 var _ CloudSpaceService = &CloudSpaceServiceOp{}
+
+// List returns all cloudspaces
+func (s *CloudSpaceServiceOp) List() (*CloudSpaceList, error) {
+	cloudSpaceMap := make(map[string]interface{})
+	cloudSpaceMap["includedeleted"] = false
+	cloudSpaceJSON, err := json.Marshal(cloudSpaceMap)
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/cloudspaces/list", bytes.NewBuffer(cloudSpaceJSON))
+	if err != nil {
+		return nil, err
+	}
+	body, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	var cloudSpaces = new(CloudSpaceList)
+	err = json.Unmarshal(body, &cloudSpaces)
+	if err != nil {
+		return nil, err
+	}
+	return cloudSpaces, nil
+}
 
 // Get individual CloudSpace
 func (s *CloudSpaceServiceOp) Get(cloudSpaceID string) (*CloudSpace, error) {
@@ -141,22 +165,37 @@ func (s *CloudSpaceServiceOp) Get(cloudSpaceID string) (*CloudSpace, error) {
 
 }
 
+// GetByNameAndAccount gets an individual cloudspace
+func (s *CloudSpaceServiceOp) GetByNameAndAccount(cloudSpaceName string, account string) (*CloudSpace, error) {
+	cloudspaces, err := s.client.CloudSpaces.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, cp := range *cloudspaces {
+		if cp.AccountName == account && cp.Name == cloudSpaceName {
+			cid := strconv.Itoa(cp.ID)
+			s.client.CloudSpaces.Get(cid)
+		}
+	}
+	return nil, errors.New("Could not find cloudspace based on name")
+}
+
 // Create a new CloudSpace
-func (s *CloudSpaceServiceOp) Create(cloudSpaceConfig *CloudSpaceConfig) error {
+func (s *CloudSpaceServiceOp) Create(cloudSpaceConfig *CloudSpaceConfig) (string, error) {
 	cloudSpaceJSON, err := json.Marshal(*cloudSpaceConfig)
 	log.Println(string(cloudSpaceJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/cloudspaces/create", bytes.NewBuffer(cloudSpaceJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = s.client.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return string(body), nil
 }
 
 // Delete a CloudSpace

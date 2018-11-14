@@ -105,8 +105,9 @@ type MachineInfo struct {
 type MachineService interface {
 	List(int) (*MachineList, error)
 	Get(string) (*MachineInfo, error)
+	GetByName(string, string) (*MachineInfo, error)
 	Create(*MachineConfig) (string, error)
-	Update(*MachineConfig) error
+	Update(*MachineConfig) (string, error)
 	Delete(*MachineConfig) error
 	DeleteByID(int) error
 	Template(int, string) error
@@ -169,6 +170,24 @@ func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
 	return machineInfo, nil
 }
 
+// GetByName gets an individual machine from its name
+func (s *MachineServiceOp) GetByName(name string, cloudspaceID string) (*MachineInfo, error) {
+	cid, err := strconv.Atoi(cloudspaceID)
+	if err != nil {
+		return nil, err
+	}
+	machines, err := s.client.Machines.List(cid)
+	if err != nil {
+		return nil, err
+	}
+	for _, mc := range *machines {
+		if mc.Name == name {
+			return s.client.Machines.Get(strconv.Itoa(mc.ID))
+		}
+	}
+	return nil, nil
+}
+
 // Create a new machine
 func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) {
 	machineJSON, err := json.Marshal(*machineConfig)
@@ -187,20 +206,20 @@ func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) 
 }
 
 // Update an existing machine
-func (s *MachineServiceOp) Update(machineConfig *MachineConfig) error {
+func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) {
 	machineJSON, err := json.Marshal(*machineConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/update", bytes.NewBuffer(machineJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = s.client.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return string(body), nil
 }
 
 // Delete an existing machine

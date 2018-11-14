@@ -3,6 +3,7 @@ package godo
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -80,11 +81,12 @@ type DiskList []struct {
 type DiskService interface {
 	List(int) (*DiskList, error)
 	Get(string) (*DiskInfo, error)
-	Create(*DiskConfig) error
+	GetByMaxSize(string, string) (*DiskInfo, error)
+	Create(*DiskConfig) (string, error)
 	Delete(*DiskDeleteConfig) error
 }
 
-// DiskServiceOp handles communication with the machine related methods of the
+// DiskServiceOp handles communication with the disk related methods of the
 // OVC API
 type DiskServiceOp struct {
 	client *OvcClient
@@ -117,20 +119,20 @@ func (s *DiskServiceOp) List(accountID int) (*DiskList, error) {
 }
 
 // Create a new Disk
-func (s *DiskServiceOp) Create(diskConfig *DiskConfig) error {
+func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 	diskConfigJSON, err := json.Marshal(*diskConfig)
 	if err != nil {
-		return err
+		return "", err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/addDisk", bytes.NewBuffer(diskConfigJSON))
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = s.client.Do(req)
+	body, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return string(body), nil
 }
 
 // Delete an existing Disk
@@ -178,4 +180,23 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 	}
 	return diskInfo, nil
 
+}
+
+// GetByMaxSize gets a disk by its maxsize
+func (s *DiskServiceOp) GetByMaxSize(name string, accountID string) (*DiskInfo, error) {
+	aid, err := strconv.Atoi(accountID)
+	if err != nil {
+		return nil, err
+	}
+	disks, err := s.client.Disks.List(aid)
+	if err != nil {
+		return nil, err
+	}
+	for _, dk := range *disks {
+		if dk.Name == name {
+			did := strconv.Itoa(dk.ID)
+			return s.client.Disks.Get(did)
+		}
+	}
+	return nil, errors.New("Could not find disk based on maxsize")
 }

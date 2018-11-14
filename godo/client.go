@@ -34,6 +34,7 @@ type OvcClient struct {
 	Disks        DiskService
 	Portforwards ForwardingService
 	Templates    TemplateService
+	Sizes        SizesService
 }
 
 // Do sends and API Request and returns the body as an array of bytes
@@ -71,6 +72,7 @@ func NewClient(c *Config, url string) *OvcClient {
 	client.Disks = &DiskServiceOp{client: client}
 	client.Portforwards = &ForwardingServiceOp{client: client}
 	client.Templates = &TemplateServiceOp{client: client}
+	client.Sizes = &SizesServiceOp{client: client}
 	return client
 }
 
@@ -98,7 +100,8 @@ func NewLogin(c *Config) string {
 	return jwt
 }
 
-func (c *OvcClient) getLocation() string {
+// GetLocation parses the URL to return the location of the API
+func (c *OvcClient) GetLocation() string {
 	u, _ := url.Parse(c.ServerURL)
 	hostName := u.Hostname()
 	return hostName[:strings.IndexByte(hostName, '.')]
