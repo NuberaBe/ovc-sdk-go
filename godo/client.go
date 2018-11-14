@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // Config used to connect to the API
@@ -61,9 +63,11 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 }
 
 // NewClient returns a OpenVCloud API Client
-func NewClient(c *Config, url string) *OvcClient {
+func NewClient(c *Config, url string, mapClaims jwt.MapClaims) *OvcClient {
 	client := &OvcClient{}
 	client.JWT = NewLogin(c)
+
+	jwt.ParseWithClaims(client.JWT, mapClaims, nil)
 	client.ServerURL = url
 
 	client.Machines = &MachineServiceOp{client: client}
