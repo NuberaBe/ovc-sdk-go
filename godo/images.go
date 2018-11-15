@@ -23,6 +23,7 @@ type ImageConfig struct {
 // See: https://ch-lug-dc01-001.gig.tech/system/
 type ImageService interface {
 	Upload(*ImageConfig) error
+	DeleteByID(int) error
 }
 
 // ImageServiceOp handles communication with the image related methods of the
@@ -39,7 +40,26 @@ func (s *ImageServiceOp) Upload(imageConfig *ImageConfig) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "ch-lug-dc01-001.gig.tech/system/cloudbroker/image/createImage", bytes.NewBuffer(imageJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudbroker/image/createImage", bytes.NewBuffer(imageJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteByID deletes an existing image by ID
+func (s *ImageServiceOp) DeleteByID(imageID int) error {
+	imageMap := make(map[string]interface{})
+	imageMap["imageId"] = imageID
+	imageJSON, err := json.Marshal(imageMap)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/images/delete", bytes.NewBuffer(imageJSON))
 	if err != nil {
 		return err
 	}
