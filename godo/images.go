@@ -55,6 +55,7 @@ func (s *ImageServiceOp) Upload(imageConfig *ImageConfig) error {
 func (s *ImageServiceOp) DeleteByID(imageID int) error {
 	imageMap := make(map[string]interface{})
 	imageMap["imageId"] = imageID
+	imageMap["permanently"] = true
 	imageJSON, err := json.Marshal(imageMap)
 	if err != nil {
 		return err
