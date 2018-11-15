@@ -83,6 +83,7 @@ type DiskService interface {
 	Get(string) (*DiskInfo, error)
 	GetByMaxSize(string, string) (*DiskInfo, error)
 	Create(*DiskConfig) (string, error)
+	Update(*DiskConfig) error
 	Delete(*DiskDeleteConfig) error
 }
 
@@ -133,6 +134,23 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// Update updates an existing disk
+func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
+	diskConfigJSON, err := json.Marshal(*diskConfig)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/update", bytes.NewBuffer(diskConfigJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Delete an existing Disk

@@ -174,7 +174,7 @@ func (s *CloudSpaceServiceOp) GetByNameAndAccount(cloudSpaceName string, account
 	for _, cp := range *cloudspaces {
 		if cp.AccountName == account && cp.Name == cloudSpaceName {
 			cid := strconv.Itoa(cp.ID)
-			s.client.CloudSpaces.Get(cid)
+			return s.client.CloudSpaces.Get(cid)
 		}
 	}
 	return nil, errors.New("Could not find cloudspace based on name")

@@ -63,12 +63,16 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 }
 
 // NewClient returns a OpenVCloud API Client
-func NewClient(c *Config, url string, mapClaims jwt.MapClaims) *OvcClient {
+func NewClient(c *Config, url string) *OvcClient {
 	client := &OvcClient{}
-	client.JWT = NewLogin(c)
 
-	jwt.ParseWithClaims(client.JWT, mapClaims, nil)
+	tokenString := NewLogin(c)
+	claims := jwt.MapClaims{}
+	jwt.ParseWithClaims(tokenString, claims, nil)
+
 	client.ServerURL = url
+	client.JWT = tokenString
+	client.Access = claims["username"].(string) + "@itsyouonline"
 
 	client.Machines = &MachineServiceOp{client: client}
 	client.CloudSpaces = &CloudSpaceServiceOp{client: client}
