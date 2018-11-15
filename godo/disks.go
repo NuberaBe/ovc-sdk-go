@@ -142,7 +142,7 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/update", bytes.NewBuffer(diskConfigJSON))
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
 	if err != nil {
 		return err
 	}
