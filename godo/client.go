@@ -37,6 +37,7 @@ type OvcClient struct {
 	Portforwards ForwardingService
 	Templates    TemplateService
 	Sizes        SizesService
+	Images       ImageService
 }
 
 // Do sends and API Request and returns the body as an array of bytes
@@ -81,6 +82,7 @@ func NewClient(c *Config, url string) *OvcClient {
 	client.Portforwards = &ForwardingServiceOp{client: client}
 	client.Templates = &TemplateServiceOp{client: client}
 	client.Sizes = &SizesServiceOp{client: client}
+	client.Images = &ImageServiceOp{client: client}
 	return client
 }
 

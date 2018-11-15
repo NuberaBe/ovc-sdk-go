@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -106,7 +105,7 @@ type CloudSpaceService interface {
 	Delete(*CloudSpaceDeleteConfig) error
 }
 
-// CloudSpaceServiceOp handles communication with the machine related methods of the
+// CloudSpaceServiceOp handles communication with the cloudspace related methods of the
 // OVC API
 type CloudSpaceServiceOp struct {
 	client *OvcClient
@@ -183,7 +182,6 @@ func (s *CloudSpaceServiceOp) GetByNameAndAccount(cloudSpaceName string, account
 // Create a new CloudSpace
 func (s *CloudSpaceServiceOp) Create(cloudSpaceConfig *CloudSpaceConfig) (string, error) {
 	cloudSpaceJSON, err := json.Marshal(*cloudSpaceConfig)
-	log.Println(string(cloudSpaceJSON))
 	if err != nil {
 		return "", err
 	}
