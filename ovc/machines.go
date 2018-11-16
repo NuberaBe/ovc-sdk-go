@@ -38,15 +38,17 @@ type MachineList []struct {
 
 // MachineConfig is used when creating a machine
 type MachineConfig struct {
-	MachineID    string        `json:"machineId"`
-	CloudspaceID int           `json:"cloudspaceId"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	SizeID       int           `json:"sizeId"`
-	ImageID      int           `json:"imageId"`
-	Disksize     int           `json:"disksize"`
-	DataDisks    []interface{} `json:"datadisks"`
-	Permanently  string        `json:"permanently"`
+	MachineID    string        `json:"machineId,omitempty"`
+	CloudspaceID int           `json:"cloudspaceId,omitempty"`
+	Name         string        `json:"name,omitempty"`
+	Description  string        `json:"description,omitempty"`
+	Memory       int           `json:"memory,omitempty"`
+	Vcpus        int           `json:"vcpus,omitempty"`
+	SizeID       int           `json:"sizeId,omitempty"`
+	ImageID      int           `json:"imageId,omitempty"`
+	Disksize     int           `json:"disksize,omitempty"`
+	DataDisks    []interface{} `json:"datadisks,omitempty"`
+	Permanently  bool          `json:"permanently,omitempty"`
 }
 
 // MachineInfo contains all information related to a cloudspace

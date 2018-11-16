@@ -71,7 +71,7 @@ func NewClient(c *Config, url string) *OvcClient {
 	claims := jwt.MapClaims{}
 	jwt.ParseWithClaims(tokenString, claims, nil)
 
-	client.ServerURL = url
+	client.ServerURL = url + "/restmachine"
 	client.JWT = tokenString
 	client.Access = claims["username"].(string) + "@itsyouonline"
 

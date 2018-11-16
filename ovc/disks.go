@@ -11,16 +11,16 @@ import (
 
 // DiskConfig is used when creating a disk
 type DiskConfig struct {
-	MachineID   int    `json:"machineId"`
-	DiskName    string `json:"diskName"`
-	Description string `json:"description"`
-	Size        int    `json:"size"`
-	Type        string `json:"type"`
-	SSDSize     int    `json:"ssdSize"`
-	IOPS        int    `json:"iops"`
-	DiskID      int    `json:"diskId"`
-	Detach      bool   `json:"detach"`
-	Permanently string `json:"permanently"`
+	MachineID   int    `json:"machineId,omitempty"`
+	DiskName    string `json:"diskName,omitempty"`
+	Description string `json:"description,omitempty"`
+	Size        int    `json:"size,omitempty"`
+	Type        string `json:"type,omitempty"`
+	SSDSize     int    `json:"ssdSize,omitempty"`
+	IOPS        int    `json:"iops,omitempty"`
+	DiskID      int    `json:"diskId,omitempty"`
+	Detach      bool   `json:"detach,omitempty"`
+	Permanently string `json:"permanently,omitempty"`
 }
 
 // DiskDeleteConfig is used when deleting a disk

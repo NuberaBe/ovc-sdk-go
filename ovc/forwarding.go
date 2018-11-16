@@ -8,15 +8,15 @@ import (
 
 // PortForwardingConfig is used when creating a portforward
 type PortForwardingConfig struct {
-	CloudspaceID     int    `json:"cloudspaceId"`
-	SourcePublicIP   string `json:"sourcePublicIp"`
-	SourcePublicPort int    `json:"sourcePublicPort"`
-	SourceProtocol   string `json:"sourceProtocol"`
-	PublicIP         string `json:"publicIp"`
-	PublicPort       int    `json:"publicPort"`
-	MachineID        int    `json:"machineId"`
-	LocalPort        int    `json:"localPort"`
-	Protocol         string `json:"protocol"`
+	CloudspaceID     int    `json:"cloudspaceId,omitempty"`
+	SourcePublicIP   string `json:"sourcePublicIp,omitempty"`
+	SourcePublicPort int    `json:"sourcePublicPort,omitempty"`
+	SourceProtocol   string `json:"sourceProtocol,omitempty"`
+	PublicIP         string `json:"publicIp,omitempty"`
+	PublicPort       int    `json:"publicPort,omitempty"`
+	MachineID        int    `json:"machineId,omitempty"`
+	LocalPort        int    `json:"localPort,omitempty"`
+	Protocol         string `json:"protocol,omitempty"`
 }
 
 // PortForwardingList is a list of portforwards
