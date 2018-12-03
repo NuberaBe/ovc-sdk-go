@@ -27,9 +27,9 @@ type DiskConfig struct {
 
 // DiskDeleteConfig is used when deleting a disk
 type DiskDeleteConfig struct {
-	DiskID      int    `json:"diskId"`
-	Detach      bool   `json:"detach"`
-	Permanently string `json:"permanently"`
+	DiskID      int  `json:"diskId"`
+	Detach      bool `json:"detach"`
+	Permanently bool `json:"permanently"`
 }
 
 // DiskAttachConfig is used when attatching a disk to a machine
