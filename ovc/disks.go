@@ -89,7 +89,7 @@ type DiskList []struct {
 type DiskService interface {
 	List(int) (*DiskList, error)
 	Get(string) (*DiskInfo, error)
-	GetByMaxSize(string, string) (*DiskInfo, error)
+	GetByName(string, string) (*DiskInfo, error)
 	Create(*DiskConfig) (string, error)
 	CreateAndAttach(*DiskConfig) (string, error)
 	Attach(*DiskAttachConfig) error
@@ -262,8 +262,8 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 
 }
 
-// GetByMaxSize gets a disk by its maxsize
-func (s *DiskServiceOp) GetByMaxSize(name string, accountID string) (*DiskInfo, error) {
+// GetByName gets a disk by its maxsize
+func (s *DiskServiceOp) GetByName(name string, accountID string) (*DiskInfo, error) {
 	aid, err := strconv.Atoi(accountID)
 	if err != nil {
 		return nil, err
