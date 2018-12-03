@@ -11,6 +11,8 @@ import (
 
 // DiskConfig is used when creating a disk
 type DiskConfig struct {
+	AccountID   int    `json:"accountId,omitempty"`
+	GID         int    `json:"gid,omitempty"`
 	MachineID   int    `json:"machineId,omitempty"`
 	DiskName    string `json:"diskName,omitempty"`
 	Description string `json:"description,omitempty"`
@@ -28,6 +30,12 @@ type DiskDeleteConfig struct {
 	DiskID      int    `json:"diskId"`
 	Detach      bool   `json:"detach"`
 	Permanently string `json:"permanently"`
+}
+
+// DiskAttachConfig is used when attatching a disk to a machine
+type DiskAttachConfig struct {
+	DiskID    int `json:"diskId"`
+	MachineID int `json:"machineId"`
 }
 
 // DiskInfo contains all information related to a disk
@@ -83,6 +91,9 @@ type DiskService interface {
 	Get(string) (*DiskInfo, error)
 	GetByMaxSize(string, string) (*DiskInfo, error)
 	Create(*DiskConfig) (string, error)
+	CreateAndAttach(*DiskConfig) (string, error)
+	Attach(*DiskAttachConfig) error
+	Detach(*DiskAttachConfig) error
 	Update(*DiskConfig) error
 	Delete(*DiskDeleteConfig) error
 }
@@ -119,8 +130,8 @@ func (s *DiskServiceOp) List(accountID int) (*DiskList, error) {
 	return disks, nil
 }
 
-// Create a new Disk
-func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
+// CreateAndAttach a new Disk and attaches it to a machine
+func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) {
 	diskConfigJSON, err := json.Marshal(*diskConfig)
 	if err != nil {
 		return "", err
@@ -134,6 +145,57 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// Create a new Disk
+func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
+	diskConfigJSON, err := json.Marshal(*diskConfig)
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/create", bytes.NewBuffer(diskConfigJSON))
+	if err != nil {
+		return "", err
+	}
+	body, err := s.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
+}
+
+// Attach attaches an existing disk to a machine
+func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
+	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/attachDisk", bytes.NewBuffer(diskConfigJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Detach detatches an existing disk to a machine
+func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
+	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/detachDisk", bytes.NewBuffer(diskConfigJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Update updates an existing disk
