@@ -15,6 +15,7 @@ type DiskConfig struct {
 	GID         int    `json:"gid,omitempty"`
 	MachineID   int    `json:"machineId,omitempty"`
 	DiskName    string `json:"diskName,omitempty"`
+	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Size        int    `json:"size,omitempty"`
 	Type        string `json:"type,omitempty"`
