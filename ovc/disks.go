@@ -78,7 +78,7 @@ type DiskList []struct {
 	Status      string      `json:"status"`
 	Description string      `json:"description"`
 	Name        string      `json:"name"`
-	Size        int         `json:"size"`
+	Size        int         `json:"sizeMax"`
 	Type        string      `json:"type"`
 	ID          int         `json:"id"`
 	AccountID   int         `json:"accountId"`
