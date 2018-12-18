@@ -88,6 +88,7 @@ type DiskList []struct {
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type DiskService interface {
+	Resize(*DiskConfig) error
 	List(int) (*DiskList, error)
 	Get(string) (*DiskInfo, error)
 	GetByName(string, string) (*DiskInfo, error)
@@ -280,4 +281,21 @@ func (s *DiskServiceOp) GetByName(name string, accountID string) (*DiskInfo, err
 		}
 	}
 	return nil, errors.New("Could not find disk based on maxsize")
+}
+
+// Resize resizes a disk. Can only increase the size of a disk
+func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
+	diskConfigJSON, err := json.Marshal(*diskConfig)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	return nil
 }
