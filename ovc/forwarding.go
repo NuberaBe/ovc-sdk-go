@@ -3,7 +3,9 @@ package ovc
 import (
 	"bytes"
 	"encoding/json"
+	"math/rand"
 	"net/http"
+	"strconv"
 )
 
 // PortForwardingConfig is used when creating a portforward
@@ -36,7 +38,7 @@ type PortForwardingList []struct {
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type ForwardingService interface {
-	Create(*PortForwardingConfig) error
+	Create(*PortForwardingConfig) (int, error)
 	List(*PortForwardingConfig) (*PortForwardingList, error)
 	Delete(*PortForwardingConfig) error
 	DeleteByPort(int, string, int) error
@@ -52,20 +54,23 @@ type ForwardingServiceOp struct {
 var _ ForwardingService = &ForwardingServiceOp{}
 
 // Create a new portforward
-func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig) error {
+func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig) (int, error) {
+	if portForwardingConfig.PublicPort == 0 {
+		portForwardingConfig.PublicPort = s.getRandomPublicPort(portForwardingConfig)
+	}
 	portForwardingJSON, err := json.Marshal(*portForwardingConfig)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/portforwarding/create", bytes.NewBuffer(portForwardingJSON))
 	if err != nil {
-		return err
+		return 0, err
 	}
 	_, err = s.client.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return portForwardingConfig.PublicPort, nil
 }
 
 // Update an existing portforward
@@ -140,4 +145,25 @@ func (s *ForwardingServiceOp) DeleteByPort(publicPort int, publicIP string, clou
 		return err
 	}
 	return nil
+}
+
+func (s *ForwardingServiceOp) getRandomPublicPort(portForwardingConfig *PortForwardingConfig) int {
+	r := rand.Intn(40000) + 2000
+	for s.hasPublicPort(portForwardingConfig, r) {
+		r = rand.Intn(40000) + 2000
+	}
+	return r
+}
+
+func (s *ForwardingServiceOp) hasPublicPort(portForwardingConfig *PortForwardingConfig, r int) bool {
+	list, err := s.List(portForwardingConfig)
+	if err != nil {
+		return false
+	}
+	for _, port := range *list {
+		if port.PublicPort == strconv.Itoa(r) {
+			return true
+		}
+	}
+	return false
 }
