@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // PortForwardingConfig is used when creating a portforward
@@ -148,15 +149,20 @@ func (s *ForwardingServiceOp) DeleteByPort(publicPort int, publicIP string, clou
 }
 
 func (s *ForwardingServiceOp) getRandomPublicPort(portForwardingConfig *PortForwardingConfig) int {
-	r := rand.Intn(40000) + 2000
-	for s.hasPublicPort(portForwardingConfig, r) {
-		r = rand.Intn(40000) + 2000
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	randInt := r.Intn(40000) + 2000
+	for s.hasPublicPort(portForwardingConfig, randInt) {
+		randInt = rand.Intn(40000) + 2000
 	}
-	return r
+	return randInt
 }
 
 func (s *ForwardingServiceOp) hasPublicPort(portForwardingConfig *PortForwardingConfig, r int) bool {
-	list, err := s.List(portForwardingConfig)
+	config := &PortForwardingConfig{
+		CloudspaceID: portForwardingConfig.CloudspaceID,
+	}
+	list, err := s.List(config)
 	if err != nil {
 		return false
 	}
