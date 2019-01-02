@@ -49,6 +49,7 @@ type MachineConfig struct {
 	Disksize     int           `json:"disksize,omitempty"`
 	DataDisks    []interface{} `json:"datadisks,omitempty"`
 	Permanently  bool          `json:"permanently,omitempty"`
+	Userdata     string        `json:"userdata,omitempty"`
 }
 
 // MachineInfo contains all information related to a cloudspace
