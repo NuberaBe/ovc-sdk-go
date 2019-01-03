@@ -3,6 +3,7 @@ package ovc
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -35,6 +36,18 @@ type PortForwardingList []struct {
 	ID          int    `json:"id"`
 }
 
+// PortForwardingInfo is returned when using the get method
+type PortForwardingInfo struct {
+	Protocol    string `json:"protocol"`
+	LocalPort   string `json:"localPort"`
+	MachineName string `json:"machineName"`
+	PublicIP    string `json:"publicIp"`
+	LocalIP     string `json:"localIp"`
+	MachineID   int    `json:"machineId"`
+	PublicPort  string `json:"publicPort"`
+	ID          int    `json:"id"`
+}
+
 // ForwardingService is an interface for interfacing with the portforwards
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
@@ -44,6 +57,7 @@ type ForwardingService interface {
 	Delete(*PortForwardingConfig) error
 	DeleteByPort(int, string, int) error
 	Update(*PortForwardingConfig) error
+	Get(*PortForwardingConfig) (*PortForwardingInfo, error)
 }
 
 // ForwardingServiceOp handles communication with the machine related methods of the
@@ -53,6 +67,29 @@ type ForwardingServiceOp struct {
 }
 
 var _ ForwardingService = &ForwardingServiceOp{}
+
+// Get a portforward based on publicport
+func (s *ForwardingServiceOp) Get(portForwardingConfig *PortForwardingConfig) (*PortForwardingInfo, error) {
+	portForwardingList, err := s.List(portForwardingConfig)
+	if err != nil {
+		return nil, err
+	}
+	for _, portforward := range *portForwardingList {
+		if portforward.PublicPort == strconv.Itoa(portForwardingConfig.PublicPort) {
+			return &PortForwardingInfo{
+				Protocol:    portforward.Protocol,
+				LocalPort:   portforward.LocalPort,
+				MachineName: portforward.MachineName,
+				PublicIP:    portforward.PublicIP,
+				LocalIP:     portforward.LocalIP,
+				MachineID:   portforward.MachineID,
+				PublicPort:  portforward.PublicPort,
+				ID:          portforward.ID,
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("Could not find a portforward with publicport %v", portForwardingConfig.PublicPort)
+}
 
 // Create a new portforward
 func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig) (int, error) {
