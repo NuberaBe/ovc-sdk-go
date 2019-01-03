@@ -47,7 +47,13 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 	req.Header.Set("Authorization", "bearer "+c.JWT)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	log.Println("Status code: " + resp.Status)
 	log.Println("Body: " + string(body))
 	if resp.StatusCode > 202 {
