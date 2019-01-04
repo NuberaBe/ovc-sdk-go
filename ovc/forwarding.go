@@ -21,6 +21,7 @@ type PortForwardingConfig struct {
 	MachineID        int    `json:"machineId,omitempty"`
 	LocalPort        int    `json:"localPort,omitempty"`
 	Protocol         string `json:"protocol,omitempty"`
+	ID               int    `json:"id,omitempty"`
 }
 
 // PortForwardingList is a list of portforwards
@@ -68,7 +69,7 @@ type ForwardingServiceOp struct {
 
 var _ ForwardingService = &ForwardingServiceOp{}
 
-// Get a portforward based on publicport
+// Get a portforward based on ID
 func (s *ForwardingServiceOp) Get(portForwardingConfig *PortForwardingConfig) (*PortForwardingInfo, error) {
 	portForwardingList, err := s.List(portForwardingConfig)
 	if err != nil {
