@@ -105,12 +105,14 @@ type MachineInfo struct {
 // MachineService is an interface for interfacing with the Machine
 // endpoints of the OVC API
 // See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
+//ht: added resize
 type MachineService interface {
 	List(int) (*MachineList, error)
 	Get(string) (*MachineInfo, error)
 	GetByName(string, string) (*MachineInfo, error)
 	Create(*MachineConfig) (string, error)
 	Update(*MachineConfig) (string, error)
+	Resize(*MachineConfig) (string, error)
 	Delete(*MachineConfig) error
 	DeleteByID(int) error
 	Template(int, string) error
@@ -224,6 +226,24 @@ func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) 
 	}
 	return string(body), nil
 }
+
+//ht: reszize an existing machine
+func (s *MachineServiceOp) Resize(machineConfig *MachineConfig) (string, error) {
+	machineJSON, err := json.Marshal(*machineConfig)
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/resize", bytes.NewBuffer(machineJSON))
+	if err != nil {
+		return "", err
+	}
+	body, err := s.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
+}
+
 
 // Delete an existing machine
 func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
