@@ -99,6 +99,8 @@ type MachineInfo struct {
 	} `json:"interfaces"`
 	Imageid     int         `json:"imageid"`
 	ID          int         `json:"id"`
+	Memory      int         `json:"memory"`
+	Vcpus       int         `json:"vcpus"`
 	Description interface{} `json:"description"`
 }
 
@@ -243,7 +245,6 @@ func (s *MachineServiceOp) Resize(machineConfig *MachineConfig) (string, error) 
 	}
 	return string(body), nil
 }
-
 
 // Delete an existing machine
 func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
