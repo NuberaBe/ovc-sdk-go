@@ -2,6 +2,7 @@ package ovc
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,6 +17,7 @@ type Config struct {
 	Hostname     string
 	ClientID     string
 	ClientSecret string
+	JWT          string
 }
 
 // Credentials used to authenticate
@@ -50,36 +52,46 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
+
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	log.Println("Status code: " + resp.Status)
 	log.Println("Body: " + string(body))
 	if resp.StatusCode > 202 {
 		return body, errors.New(string(body))
 	}
-	if err != nil {
-		return body, errors.New(string(body))
-	}
 
-	if err != nil {
-		return body, errors.New(string(body))
-	}
 	return body, nil
 }
 
 // NewClient returns a OpenVCloud API Client
-func NewClient(c *Config, url string) *OvcClient {
-	client := &OvcClient{}
+func NewClient(c *Config, url string) (*OvcClient, error) {
+	if c.ClientID != "" && c.ClientSecret != "" && c.JWT != "" {
+		return nil, fmt.Errorf("ClientID, ClientSecret and JWT are provided, please only set ClientID and ClientSecret or JWT")
+	}
 
-	tokenString := NewLogin(c)
+	client := &OvcClient{}
+	tokenString := ""
 	claims := jwt.MapClaims{}
+
+	if c.JWT == "" {
+		tokenString = NewLogin(c)
+	} else {
+		tokenString = c.JWT
+	}
 	jwt.ParseWithClaims(tokenString, claims, nil)
+	username, ok := claims["username"]
+	if !ok {
+		return nil, fmt.Errorf("JWT does not contain a username claim")
+	}
 
 	client.ServerURL = url + "/restmachine"
 	client.JWT = tokenString
-	client.Access = claims["username"].(string) + "@itsyouonline"
+	client.Access = username.(string) + "@itsyouonline"
 
 	client.Machines = &MachineServiceOp{client: client}
 	client.CloudSpaces = &CloudSpaceServiceOp{client: client}
@@ -89,7 +101,8 @@ func NewClient(c *Config, url string) *OvcClient {
 	client.Templates = &TemplateServiceOp{client: client}
 	client.Sizes = &SizesServiceOp{client: client}
 	client.Images = &ImageServiceOp{client: client}
-	return client
+
+	return client, nil
 }
 
 // NewLogin logs into the itsyouonline platform using the comfig struct
