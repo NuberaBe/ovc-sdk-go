@@ -108,7 +108,7 @@ type CloudSpaceService interface {
 // CloudSpaceServiceOp handles communication with the cloudspace related methods of the
 // OVC API
 type CloudSpaceServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ CloudSpaceService = &CloudSpaceServiceOp{}
