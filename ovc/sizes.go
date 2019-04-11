@@ -39,7 +39,7 @@ type SizesService interface {
 // SizesServiceOp handles communication with the size related methods of the
 // OVC API
 type SizesServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ SizesService = &SizesServiceOp{}

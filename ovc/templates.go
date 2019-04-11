@@ -31,7 +31,7 @@ var _ TemplateService = &TemplateServiceOp{}
 // TemplateServiceOp handles communication with the image related methods of the
 // OVC API
 type TemplateServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 // List all images

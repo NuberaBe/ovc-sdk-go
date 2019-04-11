@@ -124,7 +124,7 @@ type MachineService interface {
 // MachineServiceOp handles communication with the machine related methods of the
 // OVC API
 type MachineServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ MachineService = &MachineServiceOp{}

@@ -30,7 +30,7 @@ type ImageService interface {
 // ImageServiceOp handles communication with the image related methods of the
 // OVC API
 type ImageServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ ImageService = &ImageServiceOp{}

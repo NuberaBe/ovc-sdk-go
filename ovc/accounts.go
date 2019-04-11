@@ -42,7 +42,7 @@ var _ AccountService = &AccountServiceOp{}
 // AccountServiceOp handles communication with the account related methods of the
 // OVC API
 type AccountServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 // GetIDByName returns the account ID based on the account name

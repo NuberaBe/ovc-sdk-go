@@ -26,8 +26,8 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-// OvcClient struct
-type OvcClient struct {
+// Client struct
+type Client struct {
 	JWT       string
 	ServerURL string
 	Access    string
@@ -43,7 +43,7 @@ type OvcClient struct {
 }
 
 // Do sends and API Request and returns the body as an array of bytes
-func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
+func (c *Client) Do(req *http.Request) ([]byte, error) {
 	var body []byte
 	client := &http.Client{}
 	req.Header.Set("Authorization", "bearer "+c.JWT)
@@ -69,12 +69,12 @@ func (c *OvcClient) Do(req *http.Request) ([]byte, error) {
 }
 
 // NewClient returns a OpenVCloud API Client
-func NewClient(c *Config, url string) (*OvcClient, error) {
+func NewClient(c *Config, url string) (*Client, error) {
 	if c.ClientID != "" && c.ClientSecret != "" && c.JWT != "" {
 		return nil, fmt.Errorf("ClientID, ClientSecret and JWT are provided, please only set ClientID and ClientSecret or JWT")
 	}
 
-	client := &OvcClient{}
+	client := &Client{}
 	tokenString := ""
 	claims := jwt.MapClaims{}
 
@@ -130,7 +130,7 @@ func NewLogin(c *Config) string {
 }
 
 // GetLocation parses the URL to return the location of the API
-func (c *OvcClient) GetLocation() string {
+func (c *Client) GetLocation() string {
 	u, _ := url.Parse(c.ServerURL)
 	hostName := u.Hostname()
 	return hostName[:strings.IndexByte(hostName, '.')]

@@ -103,7 +103,7 @@ type DiskService interface {
 // DiskServiceOp handles communication with the disk related methods of the
 // OVC API
 type DiskServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ DiskService = &DiskServiceOp{}

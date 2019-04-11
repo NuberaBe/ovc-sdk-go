@@ -64,7 +64,7 @@ type ForwardingService interface {
 // ForwardingServiceOp handles communication with the machine related methods of the
 // OVC API
 type ForwardingServiceOp struct {
-	client *OvcClient
+	client *Client
 }
 
 var _ ForwardingService = &ForwardingServiceOp{}
