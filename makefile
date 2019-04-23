@@ -21,4 +21,7 @@ fmt:
 	@echo "==> Fixing source code with gofmt..."
 	gofmt -s -w ./$(PKG_NAME)
 
-.PHONY: default test lint fmtcheck fmt
+tools:
+	GO111MODULE=off go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+
+.PHONY: default test lint fmtcheck fmt tools
