@@ -1,0 +1,15 @@
+dist: xenial
+language: go
+go:
+  - "1.11.x"
+
+env:
+  - GO111MODULE=on GOFLAGS=-mod=vendor
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - make test
+      on:
+        branch: "master"
