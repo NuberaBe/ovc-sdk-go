@@ -21,7 +21,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	SetJWTPublicKey(string(b))
+	err = SetJWTPublicKey(string(b))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func TestNewJWT(t *testing.T) {
