@@ -183,7 +183,7 @@ func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
 	return nil
 }
 
-// Detach detaches an existing disk to a machine
+// Detach detaches an existing disk from a machine
 func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
 	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
 	if err != nil {
