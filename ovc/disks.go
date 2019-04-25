@@ -221,7 +221,6 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 		if err != nil {
 			return err
 		}
-
 	}
 
 	return nil
