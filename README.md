@@ -1,3 +1,5 @@
+https://travis-ci.org/gig-tech/ovc-sdk-go.svg?branch=master
+
 # open-v-cloud
 
 Golang client for [OpenvCloud (OVC)](https://docs.gig.tech).  
