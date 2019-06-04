@@ -69,6 +69,7 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
+	log.Println("[DEBUG] OVC call: " + req.URL.Path)
 	log.Println("[DEBUG] OVC response status code: " + resp.Status)
 	log.Println("[DEBUG] OVC response body: " + string(body))
 	switch {
