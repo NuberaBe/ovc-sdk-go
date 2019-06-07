@@ -92,6 +92,10 @@ func NewClient(c *Config, url string) (*Client, error) {
 	tokenString := ""
 
 	if c.JWT == "" {
+		if c.ClientID == "" && c.ClientSecret == "" {
+			return nil, fmt.Errorf("no credentials were provided")
+		}
+
 		tokenString, err = NewLogin(c)
 		if err != nil {
 			return nil, err
