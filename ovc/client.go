@@ -48,7 +48,6 @@ type Client struct {
 
 // Do sends and API Request and returns the body as an array of bytes
 func (c *Client) Do(req *http.Request) ([]byte, error) {
-	var body []byte
 	client := &http.Client{}
 	tokenString, err := c.JWT.Get()
 	if err != nil {
@@ -64,11 +63,12 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Println("[DEBUG] OVC call: " + req.URL.Path)
 	log.Println("[DEBUG] OVC response status code: " + resp.Status)
 	log.Println("[DEBUG] OVC response body: " + string(body))
 	switch {
@@ -92,6 +92,10 @@ func NewClient(c *Config, url string) (*Client, error) {
 	tokenString := ""
 
 	if c.JWT == "" {
+		if c.ClientID == "" && c.ClientSecret == "" {
+			return nil, fmt.Errorf("no credentials were provided")
+		}
+
 		tokenString, err = NewLogin(c)
 		if err != nil {
 			return nil, err

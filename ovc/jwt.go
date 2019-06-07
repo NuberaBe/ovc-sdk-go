@@ -61,7 +61,7 @@ func NewJWT(jwtStr string, idProvider string) (*JWT, error) {
 		return nil, err
 	}
 
-	var jwt = &JWT{}
+	jwt := &JWT{}
 	jwt.original = token
 
 	switch idProvider {
@@ -116,6 +116,7 @@ type JWT struct {
 // If the JWT is expired (or nearly so) and refreshable, a refreshed token is returned
 func (j *JWT) Get() (string, error) {
 	err := j.refresh()
+
 	return j.current.Raw, err
 }
 

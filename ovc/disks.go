@@ -46,6 +46,7 @@ type DiskInfo struct {
 	Images              []interface{} `json:"images"`
 	GUID                int           `json:"guid"`
 	ID                  int           `json:"id"`
+	DeviceName          string        `json:"devicename"`
 	AccountID           int           `json:"accountId"`
 	SizeUsed            int           `json:"sizeUsed"`
 	Descr               string        `json:"descr"`
@@ -86,7 +87,6 @@ type DiskList []struct {
 
 // DiskService is an interface for interfacing with the Disk
 // endpoints of the OVC API
-// See: https://ch-lug-dc01-001.gig.tech/g8vdc/#/ApiDocs
 type DiskService interface {
 	Resize(*DiskConfig) error
 	List(int) (*DiskList, error)
@@ -106,8 +106,6 @@ type DiskServiceOp struct {
 	client *Client
 }
 
-var _ DiskService = &DiskServiceOp{}
-
 // List all disks
 func (s *DiskServiceOp) List(accountID int) (*DiskList, error) {
 	diskMap := make(map[string]interface{})
@@ -124,11 +122,12 @@ func (s *DiskServiceOp) List(accountID int) (*DiskList, error) {
 	if err != nil {
 		return nil, err
 	}
-	var disks = new(DiskList)
+	disks := new(DiskList)
 	err = json.Unmarshal(body, &disks)
 	if err != nil {
 		return nil, err
 	}
+
 	return disks, nil
 }
 
@@ -146,6 +145,7 @@ func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) 
 	if err != nil {
 		return "", err
 	}
+
 	return string(body), nil
 }
 
@@ -163,6 +163,7 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(body), nil
 }
 
@@ -177,10 +178,8 @@ func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
 		return err
 	}
 	_, err = s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // Detach detaches an existing disk from a machine
@@ -194,10 +193,8 @@ func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
 		return err
 	}
 	_, err = s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // Update updates an existing disk
@@ -232,6 +229,7 @@ func (s *DiskServiceOp) resize(diskConfigJSON []byte) error {
 		return err
 	}
 	_, err = s.client.Do(req)
+
 	return err
 }
 
@@ -241,6 +239,7 @@ func (s *DiskServiceOp) updateIOPS(diskConfigJSON []byte) error {
 		return err
 	}
 	_, err = s.client.Do(req)
+
 	return err
 }
 
@@ -256,10 +255,8 @@ func (s *DiskServiceOp) Delete(diskConfig *DiskDeleteConfig) error {
 		return err
 	}
 	_, err = s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // Get individual Disk
@@ -282,13 +279,13 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var diskInfo = new(DiskInfo)
+	diskInfo := new(DiskInfo)
 	err = json.Unmarshal(body, &diskInfo)
 	if err != nil {
 		return nil, err
 	}
-	return diskInfo, nil
 
+	return diskInfo, nil
 }
 
 // GetByName gets a disk by its maxsize
@@ -307,6 +304,7 @@ func (s *DiskServiceOp) GetByName(name string, accountID string) (*DiskInfo, err
 			return s.client.Disks.Get(did)
 		}
 	}
+
 	return nil, errors.New("Could not find disk based on maxsize")
 }
 
@@ -321,8 +319,6 @@ func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
 		return err
 	}
 	_, err = s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }

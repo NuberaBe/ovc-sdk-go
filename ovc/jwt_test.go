@@ -179,7 +179,6 @@ func TestRefresh(t *testing.T) {
 	res, err = j.Get()
 	assert.NoError(t, err)
 	assert.Equal(t, refreshedToken, res, "Token should now be the one returned from the refresh func")
-
 }
 
 // CreateJWT generates a JWT
@@ -200,5 +199,6 @@ func createJWT(t *testing.T, timeValid time.Duration, scopes string, additionalC
 	}
 
 	token := jwtLib.NewWithClaims(jwtLib.SigningMethodES384, claims)
+
 	return token.SignedString(key)
 }
