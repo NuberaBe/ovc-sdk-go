@@ -8,6 +8,7 @@ import (
 	"time"
 
 	jwtLib "github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,12 +34,12 @@ func TestNewJWT(t *testing.T) {
 	assert.NotNil(t, tokenStr)
 
 	// Not supported idProvider
-	j, err := NewJWT(tokenStr, "FOO")
+	j, err := NewJWT(tokenStr, "FOO", nil)
 	assert.Error(t, err)
 	assert.Nil(t, j)
 
 	// Valid but not refreshable
-	j, err = NewJWT(tokenStr, "IYO")
+	j, err = NewJWT(tokenStr, "IYO", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, j)
 	assert.False(t, j.refreshable)
@@ -55,7 +56,7 @@ func TestRefreshable(t *testing.T) {
 	tokenStr, err := createJWT(t, time.Hour*24, "", createClaims)
 	assert.NoError(t, err)
 
-	j, err := NewJWT(tokenStr, "IYO")
+	j, err := NewJWT(tokenStr, "IYO", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, j)
 
@@ -71,7 +72,7 @@ func TestGetClaim(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	j, err := NewJWT(tokenStr, "IYO")
+	j, err := NewJWT(tokenStr, "IYO", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, j)
 
@@ -91,16 +92,19 @@ func TestGetClaim(t *testing.T) {
 }
 
 func TestIsExpired(t *testing.T) {
+	log := logrus.New()
+	logger := log.WithField("source", "OpenvCloud client JWT manager test")
+
 	// Expired an hour ago
 	tokenStr, err := createJWT(t, -time.Hour, "", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	token, err := parseJWT(tokenStr)
+	token, err := parseJWT(tokenStr, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
 
-	res := isExpired(token)
+	res := isExpired(token, logger)
 	assert.True(t, res)
 
 	// Expired now
@@ -108,11 +112,11 @@ func TestIsExpired(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	token, err = parseJWT(tokenStr)
+	token, err = parseJWT(tokenStr, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
 
-	res = isExpired(token)
+	res = isExpired(token, logger)
 	assert.True(t, res)
 
 	// Expired a second less than expiration buffer
@@ -120,11 +124,11 @@ func TestIsExpired(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	token, err = parseJWT(tokenStr)
+	token, err = parseJWT(tokenStr, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
 
-	res = isExpired(token)
+	res = isExpired(token, logger)
 	assert.True(t, res)
 
 	// Expires 5 seconds after expiration buffer
@@ -132,11 +136,11 @@ func TestIsExpired(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	token, err = parseJWT(tokenStr)
+	token, err = parseJWT(tokenStr, logger)
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
 
-	res = isExpired(token)
+	res = isExpired(token, logger)
 	assert.False(t, res)
 }
 
@@ -149,7 +153,7 @@ func TestRefresh(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenStr)
 
-	j, err := NewJWT(tokenStr, "IYO")
+	j, err := NewJWT(tokenStr, "IYO", nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, j)
 	assert.True(t, j.refreshable)

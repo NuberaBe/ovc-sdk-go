@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -249,7 +248,7 @@ func (s *DiskServiceOp) Delete(diskConfig *DiskDeleteConfig) error {
 	if err != nil {
 		return err
 	}
-	log.Println(string(diskConfigJSON))
+
 	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/delete", bytes.NewBuffer(diskConfigJSON))
 	if err != nil {
 		return err
