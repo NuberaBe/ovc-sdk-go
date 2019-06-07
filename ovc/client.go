@@ -48,7 +48,6 @@ type Client struct {
 
 // Do sends and API Request and returns the body as an array of bytes
 func (c *Client) Do(req *http.Request) ([]byte, error) {
-	var body []byte
 	client := &http.Client{}
 	tokenString, err := c.JWT.Get()
 	if err != nil {
@@ -64,7 +63,7 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
