@@ -45,7 +45,7 @@ type DiskInfo struct {
 	Images              []interface{} `json:"images"`
 	GUID                int           `json:"guid"`
 	ID                  int           `json:"id"`
-	DeviceName          string        `json:"devicename"`
+	PCISlot             string        `json:"pci_slot"`
 	AccountID           int           `json:"accountId"`
 	SizeUsed            int           `json:"sizeUsed"`
 	Descr               string        `json:"descr"`
