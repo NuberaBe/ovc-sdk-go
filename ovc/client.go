@@ -39,15 +39,16 @@ type Client struct {
 
 	logger *logrus.Entry
 
-	Machines     MachineService
-	CloudSpaces  CloudSpaceService
-	Accounts     AccountService
-	Disks        DiskService
-	Portforwards ForwardingService
-	Templates    TemplateService
-	Sizes        SizesService
-	Images       ImageService
-	Ipsec        IpsecService
+	Machines         MachineService
+	CloudSpaces      CloudSpaceService
+	Accounts         AccountService
+	Disks            DiskService
+	Portforwards     ForwardingService
+	Templates        TemplateService
+	Sizes            SizesService
+	Images           ImageService
+	Ipsec            IpsecService
+	ExternalNetworks ExternalNetworkService
 }
 
 // NewClient returns a OpenVCloud API Client
@@ -108,6 +109,7 @@ func NewClient(c *Config, url string) (*Client, error) {
 	client.Sizes = &SizesServiceOp{client: client}
 	client.Images = &ImageServiceOp{client: client}
 	client.Ipsec = &IpsecServiceOp{client: client}
+	client.ExternalNetworks = &ExternalNetworkServiceOp{client: client}
 
 	return client, nil
 }
