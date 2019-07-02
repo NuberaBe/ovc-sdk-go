@@ -23,6 +23,7 @@ type CloudSpaceConfig struct {
 	AllowedVMSizes         []int   `json:"allowedVMSizes,omitempty"`
 	PrivateNetwork         string  `json:"privatenetwork"`
 	Mode                   string  `json:"mode"`
+	Type                   string  `json:"type"`
 	ExternalnetworkID      int     `json:"externalnetworkId"`
 }
 
@@ -58,6 +59,8 @@ type CloudSpace struct {
 	Location        string `json:"location"`
 	Publicipaddress string `json:"publicipaddress"`
 	PrivateNetwork  string `json:"privatenetwork"`
+	Type            string `json:"type"`
+	Mode            string `json:"mode"`
 }
 
 // CloudSpaceList returns a list of CloudSpaces
