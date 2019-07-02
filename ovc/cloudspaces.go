@@ -23,7 +23,7 @@ type CloudSpaceConfig struct {
 	AllowedVMSizes         []int   `json:"allowedVMSizes,omitempty"`
 	PrivateNetwork         string  `json:"privatenetwork"`
 	Mode                   string  `json:"mode"`
-	ExternalnetworkID      string  `json:"externalnetworkId"`
+	ExternalnetworkID      int     `json:"externalnetworkId"`
 }
 
 // ResourceLimits contains all information related to resource limits
