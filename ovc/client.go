@@ -49,6 +49,7 @@ type Client struct {
 	Images           ImageService
 	Ipsec            IpsecService
 	ExternalNetworks ExternalNetworkService
+	Locations        LocationService
 }
 
 // NewClient returns a OpenVCloud API Client
@@ -110,6 +111,7 @@ func NewClient(c *Config, url string) (*Client, error) {
 	client.Images = &ImageServiceOp{client: client}
 	client.Ipsec = &IpsecServiceOp{client: client}
 	client.ExternalNetworks = &ExternalNetworkServiceOp{client: client}
+	client.Locations = &LocationServiceOp{client: client}
 
 	return client, nil
 }
