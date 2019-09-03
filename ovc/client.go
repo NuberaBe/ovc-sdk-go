@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -123,8 +122,6 @@ func NewClient(c *Config) (*Client, error) {
 // async adds "async=true" flag to all API calls
 func async(req *http.Request) (*http.Request, error) {
 	// fetch request body to the string
-	log.Printf("[DEBUG][dogs] init request %v", req)
-
 	jsonMap := make(map[string]interface{})
 
 	if req.Body != nil {
@@ -143,10 +140,7 @@ func async(req *http.Request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	newReq, err := http.NewRequest(req.Method, req.URL.String(), bytes.NewBuffer(configJSON))
-	log.Printf("[DEBUG][dogs] new Request %v", newReq)
-
 	return newReq, nil
 }
 
@@ -162,7 +156,6 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
-
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -184,82 +177,65 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 	case resp.StatusCode == 401:
 		return nil, ErrAuthentication
 	case resp.StatusCode > 202:
-		log.Printf("[DEBUG][SMURTH] resp > 202 status %v", resp.Status)
-		log.Printf("[DEBUG][SMURTH] resp > 202 body %v", taskID)
-		log.Printf("[DEBUG][SMURTH] resp > 202 full resp %v", resp)
-
 		return body, errors.New(taskID)
 	}
 
 	// remove quotes from taskID if contains any
-	var replacer = strings.NewReplacer("\"", "")
-	taskID = replacer.Replace(taskID)
+	taskID = strings.Replace(taskID, "\"", "", -1)
 
 	// create request to get result of an async API call by job id
-	type TaskConfig struct {
-		TaskID string `json:"taskguid"`
-	}
-	taskConfig := TaskConfig{TaskID: taskID}
-	taskJSON, err := json.Marshal(taskConfig)
+	taskJSON, err := json.Marshal(
+		struct {
+			TaskID string `json:"taskguid"`
+		}{
+			TaskID: taskID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[DEBUG][SMURTH] taskJSON %v", string(taskJSON))
 
-	var respResult *http.Response
+	var taskReq *http.Response
 	result := make([]interface{}, 0)
 	start, timeout := time.Now(), 10*time.Second
-	// wait for result of an async task
-	for {
 
+	// wait for result of the async task
+	for {
+		time.Sleep(2 * time.Second)
 		reqResult, err := http.NewRequest("POST", c.ServerURL+"/system/task/get", bytes.NewBuffer(taskJSON))
 		if err != nil {
 			return nil, err
 		}
 		reqResult.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
 		reqResult.Header.Set("Content-Type", "application/json")
-		log.Printf("[DEBUG][SMURTH] reqResult %v", reqResult)
-
-		time.Sleep(2 * time.Second)
-		log.Printf("[DEBUG][SMURTH] reqResult ", reqResult)
-		respResult, err = client.Do(reqResult)
-		if respResult != nil {
-			defer respResult.Body.Close()
+		taskReq, err = client.Do(reqResult)
+		if taskReq != nil {
+			defer taskReq.Body.Close()
 		}
-		log.Printf("[DEBUG][SMURTH] respResultStatus = %v, err := %v", respResult.StatusCode, err)
-
 		if err != nil {
 			return nil, err
 		}
 		switch {
-		case respResult.StatusCode == 400:
-			resultBody, err := ioutil.ReadAll(respResult.Body)
+		case taskReq.StatusCode == 400:
 			if err != nil {
 				return nil, errors.New(taskID)
 			}
-			log.Printf("[DEBUG][SMURTH] result body %v", string(resultBody))
 			return nil, errors.New(taskID)
-		case respResult.StatusCode == 401:
+		case taskReq.StatusCode == 401:
 			return nil, ErrAuthentication
-		case respResult.StatusCode == 404:
+		case taskReq.StatusCode == 404:
 			// task may have not been registered yet
 			continue
-		case respResult.StatusCode > 202:
+		case taskReq.StatusCode > 202:
 			return nil, errors.New(taskID)
 		}
-
-		if respResult.Body != nil {
-			resultBody, err := ioutil.ReadAll(respResult.Body)
+		if taskReq.Body != nil {
+			resultBody, err := ioutil.ReadAll(taskReq.Body)
 			if err != nil {
 				return nil, err
 			}
-			log.Printf("[DEBUG][SMURTH] result body %v", resultBody)
-			log.Printf("[DEBUG][SMURTH] result body str %v", string(resultBody))
-
-			// parse responce
 			if len(resultBody) != 0 {
 				err = json.Unmarshal(resultBody, &result)
-				log.Printf("[DEBUG][SMURTH] result %v, err = %v", result, err)
 
 				if err != nil {
 					return resultBody, nil
@@ -274,22 +250,11 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		}
 	}
 
-	log.Printf("[DEBUG][SMURTH] Got out of for loop, respResult = %v, ", respResult)
-
-	switch {
-	case respResult.StatusCode == 401:
-		return nil, ErrAuthentication
-	case respResult.StatusCode > 202:
-		return body, errors.New(string(taskID))
-	}
-
 	success := result[0].(bool)
 	if !success {
 		return nil, fmt.Errorf("Task was not successfull taskID: %v:\n %v", string(taskID), result[1])
 	}
-	log.Printf("[DEBUG][SMURTH] result of result %v", result)
 	finalBody, err := json.Marshal(result[1])
-	log.Printf("[DEBUG][SMURTH] finalBody %v", finalBody)
 	if err != nil {
 		return finalBody, err
 	}
