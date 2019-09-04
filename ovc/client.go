@@ -127,11 +127,11 @@ func async(req *http.Request) (*http.Request, error) {
 	if req.Body != nil {
 		reqBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		err = json.Unmarshal(reqBody, &jsonMap)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
@@ -141,13 +141,18 @@ func async(req *http.Request) (*http.Request, error) {
 		return nil, err
 	}
 	newReq, err := http.NewRequest(req.Method, req.URL.String(), bytes.NewBuffer(configJSON))
+	if err != nil {
+		return nil, err
+	}
 	return newReq, nil
 }
 
 // Do sends and API Request and returns the body as an array of bytes
 func (c *Client) Do(req *http.Request) ([]byte, error) {
 	req, err := async(req) // make request asynchronous
-
+	if err != nil {
+		return nil, err
+	}
 	client := &http.Client{}
 	tokenString, err := c.JWT.Get()
 	if err != nil {
@@ -195,62 +200,59 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	var taskReq *http.Response
+	var taskResp *http.Response
 	result := make([]interface{}, 0)
-	start, timeout := time.Now(), 10*time.Second
+	start, timeout := time.Now(), 10*time.Minute
 
 	// wait for result of the async task
 	for {
-		time.Sleep(2 * time.Second)
-		reqResult, err := http.NewRequest("POST", c.ServerURL+"/system/task/get", bytes.NewBuffer(taskJSON))
+		taskReq, err := http.NewRequest("POST", c.ServerURL+"/system/task/get", bytes.NewBuffer(taskJSON))
 		if err != nil {
 			return nil, err
 		}
-		reqResult.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
-		reqResult.Header.Set("Content-Type", "application/json")
-		taskReq, err = client.Do(reqResult)
-		if taskReq != nil {
-			defer taskReq.Body.Close()
+		taskReq.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
+		taskReq.Header.Set("Content-Type", "application/json")
+		taskResp, err = client.Do(taskReq)
+		if taskResp != nil {
+			defer taskResp.Body.Close()
 		}
 		if err != nil {
 			return nil, err
 		}
 		switch {
-		case taskReq.StatusCode == 400:
-			if err != nil {
-				return nil, errors.New(taskID)
-			}
-			return nil, errors.New(taskID)
-		case taskReq.StatusCode == 401:
+		case taskResp.StatusCode == 401:
 			return nil, ErrAuthentication
-		case taskReq.StatusCode == 404:
+		case taskResp.StatusCode == 404:
 			// task may have not been registered yet
 			continue
-		case taskReq.StatusCode > 202:
+		case taskResp.StatusCode > 202:
 			return nil, errors.New(taskID)
 		}
-		if taskReq.Body != nil {
-			resultBody, err := ioutil.ReadAll(taskReq.Body)
+		resultBody, err := ioutil.ReadAll(taskResp.Body)
+		if err != nil {
+			return nil, err
+		}
+		if len(resultBody) != 0 {
+			// if body is not empty, parse result
+			err = json.Unmarshal(resultBody, &result)
 			if err != nil {
-				return nil, err
+				return resultBody, err
 			}
-			if len(resultBody) != 0 {
-				err = json.Unmarshal(resultBody, &result)
-
-				if err != nil {
-					return resultBody, nil
-				}
-				if len(result) != 0 {
-					break
-				}
+			if len(result) != 0 {
+				// result is not empty if can be parsed to a []interface{}
+				break
 			}
 		}
 		if now := time.Now(); now.Sub(start) > timeout {
 			return nil, fmt.Errorf("job timeout %s", taskID)
 		}
+		time.Sleep(2 * time.Second)
 	}
 
-	success := result[0].(bool)
+	success, ok := result[0].(bool)
+	if !ok {
+		return nil, fmt.Errorf("Task response is incorrect taskId %v \n expected response in form [True/False, taskResult], received: \n %v", string(taskID), result)
+	}
 	if !success {
 		return nil, fmt.Errorf("Task was not successfull taskID: %v:\n %v", string(taskID), result[1])
 	}
