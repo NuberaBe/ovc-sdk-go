@@ -51,6 +51,20 @@ type MachineConfig struct {
 	Userdata     string        `json:"userdata,omitempty"`
 }
 
+// EmptyMachineConfig is used when creating a new "empty" machine.
+// A machine is considered "empty" if it's not created from an
+// existing image.
+type EmptyMachineConfig struct {
+	CloudspaceID int    `json:"cloudspaceId,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Description  string `json:"description,omitempty"`
+	Memory       int    `json:"memory,omitempty"`
+	Vcpus        int    `json:"vcpus,omitempty"`
+	Disksize     int    `json:"disksize,omitempty"`
+	DataDisks    []int  `json:"datadisks,omitempty"`
+	Userdata     string `json:"userdata,omitempty"`
+}
+
 // MachineInfo contains all information related to a cloudspace
 type MachineInfo struct {
 	CloudspaceID int    `json:"cloudspaceid"`
@@ -111,6 +125,7 @@ type MachineService interface {
 	GetByName(string, string) (*MachineInfo, error)
 	GetByReferenceID(string) (*MachineInfo, error)
 	Create(*MachineConfig) (string, error)
+	CreateEmpty(*EmptyMachineConfig) (string, error)
 	Update(*MachineConfig) (string, error)
 	Resize(*MachineConfig) (string, error)
 	Delete(*MachineConfig) error
@@ -206,6 +221,16 @@ func (s *MachineServiceOp) GetByReferenceID(referenceID string) (*MachineInfo, e
 // Create a new machine
 func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) {
 	body, err := s.client.Post("/cloudapi/machines/create", *machineConfig)
+	if err != nil {
+		return "", err
+	}
+
+	return string(body), nil
+}
+
+// Create a new "empty" machine (= not based on an existing image)
+func (s *MachineServiceOp) CreateEmpty(emptyMachineConfig *EmptyMachineConfig) (string, error) {
+	body, err := s.client.Post("/cloudapi/machines/createEmptyMachine", *emptyMachineConfig)
 	if err != nil {
 		return "", err
 	}
