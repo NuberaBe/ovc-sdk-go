@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -311,4 +312,24 @@ func jwtFromIYO(c *Config) (string, error) {
 	}
 
 	return bodyStr, nil
+}
+
+// PostRaw POSTs a request with `raw` as data (nil is permitted) to `c.ServerUrl + endpoint`
+func (c *Client) PostRaw(endpoint string, raw io.Reader) ([]byte, error) {
+	req, err := http.NewRequest("POST", c.ServerURL+endpoint, raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req)
+}
+
+// Post marshals `in` to JSON and POSTs a request to `c.ServerUrl + endpoint`
+func (c *Client) Post(endpoint string, in interface{}) ([]byte, error) {
+	jsonIn, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.PostRaw(endpoint, bytes.NewBuffer(jsonIn))
 }

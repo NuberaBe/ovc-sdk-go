@@ -1,10 +1,8 @@
 package ovc
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"strconv"
 )
 
@@ -113,18 +111,12 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 	if len(diskType) != 0 {
 		diskMap["type"] = diskType
 	}
-	diskJSON, err := json.Marshal(diskMap)
+
+	body, err := s.client.Post("/cloudapi/disks/list", diskMap)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/list", bytes.NewBuffer(diskJSON))
-	if err != nil {
-		return nil, err
-	}
-	body, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+
 	disks := new(DiskList)
 	err = json.Unmarshal(body, &disks)
 	if err != nil {
@@ -136,15 +128,7 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 
 // CreateAndAttach a new Disk and attaches it to a machine
 func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/addDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return "", err
-	}
-	body, err := s.client.Do(req)
+	body, err := s.client.Post("/cloudapi/machines/addDisk", *diskConfig)
 	if err != nil {
 		return "", err
 	}
@@ -154,15 +138,7 @@ func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) 
 
 // Create a new Disk
 func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/create", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return "", err
-	}
-	body, err := s.client.Do(req)
+	body, err := s.client.Post("/cloudapi/disks/create", *diskConfig)
 	if err != nil {
 		return "", err
 	}
@@ -172,44 +148,21 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 
 // Attach attaches an existing disk to a machine
 func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/attachDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/machines/attachDisk", *diskAttachConfig)
 	return err
 }
 
 // Detach detaches an existing disk from a machine
 func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/detachDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/machines/detachDisk", *diskAttachConfig)
 	return err
 }
 
 // Update updates an existing disk
 func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-
 	switch {
 	case diskConfig.Size != 0:
-		err := s.resize(diskConfigJSON)
+		_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
 		if err != nil {
 			return err
 		}
@@ -217,7 +170,7 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 		fallthrough
 
 	case diskConfig.IOPS != 0:
-		err := s.updateIOPS(diskConfigJSON)
+		_, err := s.client.Post("/cloudapi/disks/limitIO", *diskConfig)
 		if err != nil {
 			return err
 		}
@@ -226,39 +179,9 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 	return nil
 }
 
-func (s *DiskServiceOp) resize(diskConfigJSON []byte) error {
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
-	return err
-}
-
-func (s *DiskServiceOp) updateIOPS(diskConfigJSON []byte) error {
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/limitIO", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
-	return err
-}
-
 // Delete an existing Disk
 func (s *DiskServiceOp) Delete(diskConfig *DiskDeleteConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/delete", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/disks/delete", *diskConfig)
 	return err
 }
 
@@ -270,15 +193,8 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 		return nil, err
 	}
 	diskIDMap["diskId"] = diskIDInt
-	diskIDJson, err := json.Marshal(diskIDMap)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/get", bytes.NewBuffer(diskIDJson))
-	if err != nil {
-		return nil, err
-	}
-	body, err := s.client.Do(req)
+
+	body, err := s.client.Post("/cloudapi/disks/get", diskIDMap)
 	if err != nil {
 		return nil, err
 	}
@@ -309,15 +225,6 @@ func (s *DiskServiceOp) GetByName(name string, accountID int, diskType string) (
 
 // Resize resizes a disk. Can only increase the size of a disk
 func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
 	return err
 }
