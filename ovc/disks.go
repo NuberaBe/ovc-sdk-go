@@ -3,6 +3,7 @@ package ovc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 )
 
@@ -83,6 +84,85 @@ type DiskList []struct {
 	AccountID   int         `json:"accountId"`
 }
 
+// DiskExposeProtocolNBD is a constant representing the storage protocol NBD
+// (Network Block Device)
+const DiskExposeProtocolNBD = "nbd"
+
+// DiskExposeConfig is used to request that a given disk is exposed via a given
+// cloudspace and protocol
+type DiskExposeConfig struct {
+	Protocol     string `json:"-"`
+	DiskID       int    `json:"diskId"`
+	CloudSpaceID int    `json:"cloudspaceId"`
+}
+
+// DiskEndPointDescriptor is an interface that a type representing a storage
+// protocol endpoint shall implement to facilitate accessing protocol specific
+// information in DiskExposeInfo
+type DiskEndPointDescriptor interface {
+	Protocol() string
+}
+
+// NBDDiskEndPointDescriptor contains NBD specific information on how to
+// access a disk exposed as a Network Block Device
+type NBDDiskEndPointDescriptor struct {
+	Address string `json:"address"`
+	Port    int    `json:"port"`
+	Name    string `json:"name"`
+	User    string `json:"user"`
+	Psk     string `json:"psk"`
+}
+
+// Protocol implements DiskEndPointDescriptor.Protocol
+func (*NBDDiskEndPointDescriptor) Protocol() string {
+	return DiskExposeProtocolNBD
+}
+
+// DiskExposeInfo contains information on how to access a disk exposed using
+// a given storage protocol.
+type DiskExposeInfo struct {
+	Protocol string                 `json:"protocol"`
+	EndPoint DiskEndPointDescriptor `json:"endpoint"`
+}
+
+// UnmarshalJSON deserializes DiskInfo from a buffer containing a JSON
+// representation of DiskInfo
+func (i *DiskExposeInfo) UnmarshalJSON(b []byte) error {
+	type ProtoProbe struct {
+		Protocol string `json:"protocol"`
+	}
+
+	probe := ProtoProbe{}
+	err := json.Unmarshal(b, &probe)
+	if err != nil {
+		return err
+	}
+
+	if probe.Protocol != DiskExposeProtocolNBD {
+		return fmt.Errorf("Unknown disk expose protocol \"%s\"", probe.Protocol)
+	}
+
+	type NBDDesc struct {
+		EndPoint NBDDiskEndPointDescriptor `json:"endpoint"`
+	}
+
+	i.Protocol = probe.Protocol
+
+	desc := NBDDesc{}
+	err = json.Unmarshal(b, &desc)
+	if err != nil {
+		return err
+	}
+
+	i.EndPoint = &desc.EndPoint
+	return nil
+}
+
+// DiskUnexposeConfig is used to request that a given exposed disk is exposed
+type DiskUnexposeConfig struct {
+	DiskID int `json:"diskId"`
+}
+
 // DiskService is an interface for interfacing with the Disk
 // endpoints of the OVC API
 type DiskService interface {
@@ -96,6 +176,8 @@ type DiskService interface {
 	Detach(*DiskAttachConfig) error
 	Update(*DiskConfig) error
 	Delete(*DiskDeleteConfig) error
+	Expose(*DiskExposeConfig) (*DiskExposeInfo, error)
+	Unexpose(*DiskUnexposeConfig) error
 }
 
 // DiskServiceOp handles communication with the disk related methods of the
@@ -226,5 +308,29 @@ func (s *DiskServiceOp) GetByName(name string, accountID int, diskType string) (
 // Resize resizes a disk. Can only increase the size of a disk
 func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
 	_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
+	return err
+}
+
+// Expose a disk using the requested protocol (currently only NBD is supported)
+// via the cloudspace specified in the DiskExposeConfig.
+func (s *DiskServiceOp) Expose(diskExposeConfig *DiskExposeConfig) (*DiskExposeInfo, error) {
+	jsonOut, err := s.client.Post("/cloudapi/disks/expose", *diskExposeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	exposeInfo := &DiskExposeInfo{}
+	err = json.Unmarshal(jsonOut, exposeInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return exposeInfo, nil
+}
+
+// Unexpose a previously exposed disk. Unexposing a non-exposed disk returns an
+// error.
+func (s *DiskServiceOp) Unexpose(diskUnexposeConfig *DiskUnexposeConfig) error {
+	_, err := s.client.Post("/cloudapi/disks/unexpose", *diskUnexposeConfig)
 	return err
 }
