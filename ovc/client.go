@@ -25,7 +25,10 @@ type Config struct {
 	ClientID     string
 	ClientSecret string
 	JWT          string
-	Verbose      bool
+	// Deprecated: only used if no Logger is passed in.
+	// Use an appropriately configured logger instead.
+	Verbose bool
+	Logger  Logger
 }
 
 // Credentials used to authenticate
@@ -40,7 +43,7 @@ type Client struct {
 	ServerURL string
 	Access    string
 
-	logger *logrus.Entry
+	logger Logger
 
 	Machines         MachineService
 	CloudSpaces      CloudSpaceService
@@ -55,8 +58,25 @@ type Client struct {
 	Locations        LocationService
 }
 
-// NewClient returns a OpenVCloud API Client
+func setupLogger(c *Config) Logger {
+	if c.Logger == nil {
+		log := logrus.New()
+		if c.Verbose {
+			log.SetLevel(logrus.DebugLevel)
+		} else {
+			log.SetLevel(logrus.InfoLevel)
+		}
+
+		return LogrusAdapter{FieldLogger: log.WithField("source", "OpenvCloud client")}
+	}
+
+	return c.Logger
+}
+
+// NewClient returns an OpenVCloud API Client
 func NewClient(c *Config) (*Client, error) {
+	logger := setupLogger(c)
+
 	if c.ClientID != "" && c.ClientSecret != "" && c.JWT != "" {
 		return nil, fmt.Errorf("ClientID, ClientSecret and JWT are provided, please only set ClientID and ClientSecret or JWT")
 	}
@@ -64,14 +84,6 @@ func NewClient(c *Config) (*Client, error) {
 	var err error
 	client := &Client{}
 	tokenString := ""
-
-	log := logrus.New()
-	if c.Verbose {
-		log.SetLevel(logrus.DebugLevel)
-	} else {
-		log.SetLevel(logrus.InfoLevel)
-	}
-	logEntry := log.WithField("source", "OpenvCloud client")
 
 	if c.JWT == "" {
 		if c.ClientID == "" && c.ClientSecret == "" {
@@ -85,7 +97,7 @@ func NewClient(c *Config) (*Client, error) {
 	} else {
 		tokenString = c.JWT
 	}
-	jwt, err := NewJWT(tokenString, "IYO", logEntry)
+	jwt, err := NewJWTFromIYO(tokenString, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +114,7 @@ func NewClient(c *Config) (*Client, error) {
 	client.JWT = jwt
 	client.Access = username.(string) + "@itsyouonline"
 
-	client.logger = logEntry
+	client.logger = logger
 
 	client.Machines = &MachineServiceOp{client: client}
 	client.CloudSpaces = &CloudSpaceServiceOp{client: client}
