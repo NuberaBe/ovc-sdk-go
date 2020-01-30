@@ -94,6 +94,7 @@ type DiskExposeConfig struct {
 	Protocol     string `json:"-"`
 	DiskID       int    `json:"diskId"`
 	CloudSpaceID int    `json:"cloudspaceId"`
+	IOPS         int    `json:"iops"`
 }
 
 // DiskEndPointDescriptor is an interface that a type representing a storage
