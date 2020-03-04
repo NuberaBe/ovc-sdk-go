@@ -36,7 +36,7 @@ type IpsecServiceOp struct {
 
 // Create a new ipsec tunnel
 func (s *IpsecServiceOp) Create(ipsecConfig *IpsecConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/ipsec/addTunnelToCloudspace", *ipsecConfig)
+	body, err := s.client.Post("/cloudapi/ipsec/addTunnelToCloudspace", *ipsecConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -52,13 +52,13 @@ func (s *IpsecServiceOp) Create(ipsecConfig *IpsecConfig) (string, error) {
 
 // Delete an existing ipsec tunnel
 func (s *IpsecServiceOp) Delete(ipsecConfig *IpsecConfig) error {
-	_, err := s.client.Post("/cloudapi/ipsec/removeTunnelFromCloudspace", *ipsecConfig)
+	_, err := s.client.Post("/cloudapi/ipsec/removeTunnelFromCloudspace", *ipsecConfig, OperationalActionTimeout)
 	return err
 }
 
 // List all ipsec of a cloudspace
 func (s *IpsecServiceOp) List(ipsecConfig *IpsecConfig) (*IpsecList, error) {
-	body, err := s.client.Post("/cloudapi/ipsec/listTunnels", *ipsecConfig)
+	body, err := s.client.Post("/cloudapi/ipsec/listTunnels", *ipsecConfig, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

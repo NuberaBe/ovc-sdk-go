@@ -18,6 +18,20 @@ import (
 var (
 	// ErrAuthentication represents an authentication error from the server 401
 	ErrAuthentication = errors.New("OVC authentication error")
+	// ErrNotFound represents a resource not found error from the server 404
+	ErrNotFound = errors.New("Resource not found")
+)
+
+// ResponseTimeout for specific api requests
+type ResponseTimeout time.Duration
+
+const (
+	// ModelActionTimeout is used for actions that only interfere with the model in the G8
+	ModelActionTimeout ResponseTimeout = ResponseTimeout(time.Minute)
+	// OperationalActionTimeout is used for actions that tamper with deploy resources
+	OperationalActionTimeout ResponseTimeout = ResponseTimeout(time.Minute * 10)
+	// DataActionTimeout is used for actions that involve moving data
+	DataActionTimeout ResponseTimeout = ResponseTimeout(time.Hour * 24)
 )
 
 // Config used to connect to the API
@@ -133,69 +147,104 @@ func NewClient(c *Config) (*Client, error) {
 }
 
 // async adds "async=true" flag to all API calls
-func async(req *http.Request) (*http.Request, error) {
+func (c *Client) async(req *http.Request) ([]byte, error) {
 	// fetch request body to the string
 	jsonMap := make(map[string]interface{})
 
 	if req.Body != nil {
 		reqBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
+			c.logger.Errorf("Failed to read body from http request: %s", err)
 			return nil, err
 		}
 		err = json.Unmarshal(reqBody, &jsonMap)
 		if err != nil {
+			c.logger.Errorf("req.Method: %s", req.Method)
+			c.logger.Errorf("req.URL: %s", req.URL.String())
+			c.logger.Errorf("Failed to marshal json body into an object: %s\njson body:\n%s", err, string(reqBody))
 			return nil, err
 		}
 	}
 
 	jsonMap["_async"] = true
-	configJSON, err := json.Marshal(jsonMap)
+	return json.Marshal(jsonMap)
+}
+
+func (c *Client) doHTTPRequest(client *http.Client, method string, url string, body io.Reader) (*http.Response, error) {
+	asyncReq, err := http.NewRequest(method, url, body)
 	if err != nil {
+		c.logger.Errorf("Failed to create async request: %s", err)
 		return nil, err
 	}
-	newReq, err := http.NewRequest(req.Method, req.URL.String(), bytes.NewBuffer(configJSON))
+	tokenString, err := c.JWT.Get()
 	if err != nil {
+		c.logger.Errorf("Could not make JWT: %s", err)
 		return nil, err
 	}
-	return newReq, nil
+	asyncReq.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
+	asyncReq.Header.Set("Content-Type", "application/json")
+	return client.Do(asyncReq)
 }
 
 // Do sends and API Request and returns the body as an array of bytes
-func (c *Client) Do(req *http.Request) ([]byte, error) {
-	req, err := async(req) // make request asynchronous
-	if err != nil {
-		return nil, err
-	}
+func (c *Client) do(req *http.Request, timeout ResponseTimeout) ([]byte, error) {
+	var requestTimeoutMultiplier int = 0
+	var requestErrorCount int = 0
+	var taskID string
 	client := &http.Client{}
-	tokenString, err := c.JWT.Get()
+	asyncBody, err := c.async(req)
 	if err != nil {
+		c.logger.Errorf("Failed to make request body async")
 		return nil, err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	if err != nil {
-		return nil, err
-	}
+	// Try to issue request, but retry if it would fail due 2 2 many concurrent requests
+	for {
+		resp, err := c.doHTTPRequest(client, req.Method, req.URL.String(), bytes.NewBuffer(asyncBody))
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		if err != nil {
+			c.logger.Errorf("Error doing G8 Api request: %s", err)
+			if requestErrorCount < 20 {
+				time.Sleep(time.Duration(requestTimeoutMultiplier) * time.Second)
+				requestErrorCount++
+				continue
+			} else {
+				c.logger.Errorf("Could not do G8 Api request: %s", err)
+				return nil, err
+			}
+		}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	taskID := string(body)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			c.logger.Errorf("Could not read response body: %s", err)
+			return nil, err
+		}
+		taskID = string(body)
 
-	c.logger.Debug("OVC call: " + req.URL.Path)
-	c.logger.Debug("OVC response status code: " + resp.Status)
-	c.logger.Debug("OVC response body: " + string(taskID))
+		c.logger.Debugf("OVC call: %s", req.URL.Path)
+		c.logger.Debugf("OVC response status code: %s", resp.StatusCode)
+		c.logger.Debugf("OVC response status: %s", resp.Status)
+		c.logger.Debugf("OVC response body: %s", string(taskID))
 
-	switch {
-	case resp.StatusCode == 401:
-		return nil, ErrAuthentication
-	case resp.StatusCode > 202:
-		return body, errors.New(taskID)
+		switch {
+		case resp.StatusCode == http.StatusBadRequest && taskID == "<html>\r\n<head><title>400 Bad Request</title></head>\r\n<body>\r\n<center><h1>400 Bad Request</h1></center>\r\n<hr><center>nginx/1.17.6</center>\r\n</body>\r\n</html>\r\n":
+			// Sometimes nginx returns 400 for no reason
+			requestTimeoutMultiplier++
+			time.Sleep(time.Duration(requestTimeoutMultiplier) * time.Second)
+			continue
+		case resp.StatusCode == http.StatusUnauthorized:
+			c.logger.Errorf("Unauthorized: %s", ErrAuthentication)
+			return nil, ErrAuthentication
+		case resp.StatusCode == http.StatusTooManyRequests:
+			requestTimeoutMultiplier++
+			time.Sleep(time.Duration(requestTimeoutMultiplier) * time.Second)
+			continue
+		case resp.StatusCode > http.StatusAccepted:
+			c.logger.Errorf("Request failed with error: %s", err)
+			return body, errors.New(taskID)
+		}
+		break
 	}
 
 	// remove quotes from taskID if contains any
@@ -210,45 +259,84 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 		},
 	)
 	if err != nil {
+		c.logger.Errorf("Could not marshal json body into object: %s", err)
 		return nil, err
 	}
 
 	var taskResp *http.Response
 	result := make([]interface{}, 0)
-	start, timeout := time.Now(), 10*time.Minute
+	start := time.Now()
 
 	// wait for result of the async task
+	requestErrorCount = 0
+	fourOFourCount := 0
 	for {
-		taskReq, err := http.NewRequest("POST", c.ServerURL+"/system/task/get", bytes.NewBuffer(taskJSON))
-		if err != nil {
+		if now := time.Now(); now.Sub(start) > time.Duration(timeout) {
+			err = fmt.Errorf("job timeout %s", taskID)
+			c.logger.Errorf("Task failed to complete within the timeout: %s", err)
 			return nil, err
 		}
-		taskReq.Header.Set("Authorization", fmt.Sprintf("bearer %s", tokenString))
-		taskReq.Header.Set("Content-Type", "application/json")
-		taskResp, err = client.Do(taskReq)
+
+		taskResp, err = c.doHTTPRequest(client, http.MethodPost, c.ServerURL+"/system/task/get", bytes.NewBuffer(taskJSON))
 		if taskResp != nil {
 			defer taskResp.Body.Close()
 		}
 		if err != nil {
-			return nil, err
+			c.logger.Errorf("Error getting task result: %s", err)
+			if requestErrorCount < 20 {
+				time.Sleep(2 * time.Second)
+				requestErrorCount++
+				continue
+			} else {
+				c.logger.Errorf("Could not get task result: %s", err)
+				return nil, err
+			}
 		}
-		switch {
-		case taskResp.StatusCode == 401:
-			return nil, ErrAuthentication
-		case taskResp.StatusCode == 404:
-			// task may have not been registered yet
-			continue
-		case taskResp.StatusCode > 202:
-			return nil, errors.New(taskID)
-		}
+
+		c.logger.Debugf("OVC call: %s", req.URL.Path)
+		c.logger.Debugf("OVC task call: %s", taskID)
+		c.logger.Debugf("OVC response status code: %s", taskResp.StatusCode)
+		c.logger.Debugf("OVC response status: %s", taskResp.Status)
 		resultBody, err := ioutil.ReadAll(taskResp.Body)
 		if err != nil {
+			c.logger.Errorf("Could not read response body: %s", err)
+			return nil, err
+		}
+		c.logger.Debugf("OVC response: %s", string(resultBody))
+
+		switch {
+		case taskResp.StatusCode == http.StatusUnauthorized:
+			c.logger.Errorf("Unauthorized: %s", ErrAuthentication)
+			return nil, ErrAuthentication
+		case taskResp.StatusCode == http.StatusNotFound:
+			if fourOFourCount == 0 {
+				fourOFourCount++
+				c.logger.Error("Oops we hit a race condition bug in the API server prior 2.5.6")
+				time.Sleep(2 * time.Second)
+				continue
+			} else {
+				c.logger.Errorf("Task not found: %s", ErrNotFound)
+				return nil, ErrNotFound
+			}
+		case taskResp.StatusCode == http.StatusBadRequest:
+			// Sometimes nginx returns 400 for no reason
+			c.logger.Error("Received 400, probably nginx issue.")
+			time.Sleep(2 * time.Second)
+			continue
+		case taskResp.StatusCode == http.StatusTooManyRequests:
+			c.logger.Error("Oops spamming the API to hard. G8 return 429")
+			time.Sleep(2 * time.Second)
+			continue
+		case taskResp.StatusCode > http.StatusTooManyRequests:
+			err = errors.New(taskID)
+			c.logger.Errorf("Task failed: %s", err)
 			return nil, err
 		}
 		if len(resultBody) != 0 {
 			// if body is not empty, parse result
 			err = json.Unmarshal(resultBody, &result)
 			if err != nil {
+				c.logger.Errorf("Could not marshal json body into object: %s", err)
 				return resultBody, err
 			}
 			if len(result) != 0 {
@@ -256,21 +344,23 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 				break
 			}
 		}
-		if now := time.Now(); now.Sub(start) > timeout {
-			return nil, fmt.Errorf("job timeout %s", taskID)
-		}
 		time.Sleep(2 * time.Second)
 	}
 
 	success, ok := result[0].(bool)
 	if !ok {
-		return nil, fmt.Errorf("Task response is incorrect taskId %v \n expected response in form [True/False, taskResult], received: \n %v", string(taskID), result)
+		err = fmt.Errorf("Task response is incorrect taskId %v \n expected response in form [True/False, taskResult], received: \n %v", string(taskID), result)
+		c.logger.Errorf("%s", err)
+		return nil, err
 	}
 	if !success {
-		return nil, fmt.Errorf("Task was not successfull taskID: %v:\n %v", string(taskID), result[1])
+		err = fmt.Errorf("Task was not successfull taskID: %v:\n %v", string(taskID), result[1])
+		c.logger.Errorf("%s", err)
+		return nil, err
 	}
 	finalBody, err := json.Marshal(result[1])
 	if err != nil {
+		c.logger.Errorf("Could not marshal result object into json: %s", err)
 		return finalBody, err
 	}
 	return finalBody, nil
@@ -300,36 +390,31 @@ func jwtFromIYO(c *Config) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Error fetching JWT: %s", err)
 	}
-
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("Error reading JWT request body: %s", err)
 	}
 	bodyStr := string(bodyBytes)
-
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("Failed to fetch JWT: %s", bodyStr)
 	}
-
 	return bodyStr, nil
 }
 
 // PostRaw POSTs a request with `raw` as data (nil is permitted) to `c.ServerUrl + endpoint`
-func (c *Client) PostRaw(endpoint string, raw io.Reader) ([]byte, error) {
+func (c *Client) PostRaw(endpoint string, raw io.Reader, timeout ResponseTimeout) ([]byte, error) {
 	req, err := http.NewRequest("POST", c.ServerURL+endpoint, raw)
 	if err != nil {
 		return nil, err
 	}
-
-	return c.Do(req)
+	return c.do(req, timeout)
 }
 
 // Post marshals `in` to JSON and POSTs a request to `c.ServerUrl + endpoint`
-func (c *Client) Post(endpoint string, in interface{}) ([]byte, error) {
+func (c *Client) Post(endpoint string, in interface{}, timeout ResponseTimeout) ([]byte, error) {
 	jsonIn, err := json.Marshal(in)
 	if err != nil {
 		return nil, err
 	}
-
-	return c.PostRaw(endpoint, bytes.NewBuffer(jsonIn))
+	return c.PostRaw(endpoint, bytes.NewBuffer(jsonIn), timeout)
 }

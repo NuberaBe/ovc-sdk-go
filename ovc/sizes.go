@@ -44,7 +44,7 @@ func (s *SizesServiceOp) List(cloudspaceID string) (*SizesList, error) {
 	sizesMap := make(map[string]interface{})
 	sizesMap["cloudspaceId"] = cloudspaceID
 
-	body, err := s.client.Post("/cloudapi/sizes/list", sizesMap)
+	body, err := s.client.Post("/cloudapi/sizes/list", sizesMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

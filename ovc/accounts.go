@@ -58,7 +58,7 @@ func (s *AccountServiceOp) GetIDByName(account string) (int, error) {
 
 // List all accounts
 func (s *AccountServiceOp) List() (*AccountList, error) {
-	body, err := s.client.PostRaw("/cloudapi/accounts/list", nil)
+	body, err := s.client.PostRaw("/cloudapi/accounts/list", nil, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

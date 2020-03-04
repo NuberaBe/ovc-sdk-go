@@ -34,7 +34,7 @@ func (s *TemplateServiceOp) List(accountID int) (*TemplateList, error) {
 	templateMap := make(map[string]interface{})
 	templateMap["accountId"] = 4
 
-	body, err := s.client.Post("/cloudapi/images/list", templateMap)
+	body, err := s.client.Post("/cloudapi/images/list", templateMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

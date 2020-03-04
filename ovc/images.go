@@ -49,7 +49,7 @@ type ImageServiceOp struct {
 
 // Upload uploads an image to the system API
 func (s *ImageServiceOp) Upload(imageConfig *ImageConfig) error {
-	_, err := s.client.Post("/cloudbroker/image/createImage", *imageConfig)
+	_, err := s.client.Post("/cloudbroker/image/createImage", *imageConfig, DataActionTimeout)
 	return err
 }
 
@@ -59,7 +59,7 @@ func (s *ImageServiceOp) DeleteByID(imageID int) error {
 	imageMap["imageId"] = imageID
 	imageMap["permanently"] = true
 
-	_, err := s.client.Post("/cloudapi/images/delete", imageMap)
+	_, err := s.client.Post("/cloudapi/images/delete", imageMap, OperationalActionTimeout)
 	return err
 }
 
@@ -70,7 +70,7 @@ func (s *ImageServiceOp) DeleteSystemImageByID(imageID int, reason string) error
 	imageMap["reason"] = reason
 	imageMap["permanently"] = true
 
-	_, err := s.client.Post("/cloudbroker/image/delete", imageMap)
+	_, err := s.client.Post("/cloudbroker/image/delete", imageMap, OperationalActionTimeout)
 	return err
 }
 
@@ -79,7 +79,7 @@ func (s *ImageServiceOp) List(accountID int) (*ImageList, error) {
 	accountIDMap := make(map[string]interface{})
 	accountIDMap["accountId"] = accountID
 
-	body, err := s.client.Post("/cloudapi/images/list", accountIDMap)
+	body, err := s.client.Post("/cloudapi/images/list", accountIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

@@ -122,7 +122,7 @@ type CloudSpaceServiceOp struct {
 func (s *CloudSpaceServiceOp) List() (*CloudSpaceList, error) {
 	cloudSpaceMap := make(map[string]interface{})
 	cloudSpaceMap["includedeleted"] = false
-	body, err := s.client.Post("/cloudapi/cloudspaces/list", cloudSpaceMap)
+	body, err := s.client.Post("/cloudapi/cloudspaces/list", cloudSpaceMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *CloudSpaceServiceOp) Get(cloudSpaceID string) (*CloudSpace, error) {
 	}
 	cloudSpaceIDMap["cloudspaceId"] = cloudSpaceIDInt
 
-	body, err := s.client.Post("/cloudapi/cloudspaces/get", cloudSpaceIDMap)
+	body, err := s.client.Post("/cloudapi/cloudspaces/get", cloudSpaceIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (s *CloudSpaceServiceOp) GetByNameAndAccount(cloudSpaceName string, account
 
 // Create a new CloudSpace
 func (s *CloudSpaceServiceOp) Create(cloudSpaceConfig *CloudSpaceConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/cloudspaces/create", *cloudSpaceConfig)
+	body, err := s.client.Post("/cloudapi/cloudspaces/create", *cloudSpaceConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -186,13 +186,13 @@ func (s *CloudSpaceServiceOp) Create(cloudSpaceConfig *CloudSpaceConfig) (string
 
 // Delete a CloudSpace
 func (s *CloudSpaceServiceOp) Delete(cloudSpaceConfig *CloudSpaceDeleteConfig) error {
-	_, err := s.client.Post("/cloudapi/cloudspaces/delete", *cloudSpaceConfig)
+	_, err := s.client.Post("/cloudapi/cloudspaces/delete", *cloudSpaceConfig, OperationalActionTimeout)
 	return err
 }
 
 // Update an existing CloudSpace
 func (s *CloudSpaceServiceOp) Update(cloudSpaceConfig *CloudSpaceConfig) error {
-	_, err := s.client.Post("/cloudapi/cloudspaces/update", *cloudSpaceConfig)
+	_, err := s.client.Post("/cloudapi/cloudspaces/update", *cloudSpaceConfig, ModelActionTimeout)
 	return err
 }
 
@@ -202,6 +202,6 @@ func (s *CloudSpaceServiceOp) SetDefaultGateway(cloudspaceID int, gateway string
 	csMap["cloudspaceId"] = cloudspaceID
 	csMap["gateway"] = gateway
 
-	_, err := s.client.Post("/cloudapi/cloudspaces/setDefaultGateway", csMap)
+	_, err := s.client.Post("/cloudapi/cloudspaces/setDefaultGateway", csMap, OperationalActionTimeout)
 	return err
 }

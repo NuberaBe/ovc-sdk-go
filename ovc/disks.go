@@ -195,7 +195,7 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 		diskMap["type"] = diskType
 	}
 
-	body, err := s.client.Post("/cloudapi/disks/list", diskMap)
+	body, err := s.client.Post("/cloudapi/disks/list", diskMap, OperationalActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 
 // CreateAndAttach a new Disk and attaches it to a machine
 func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/machines/addDisk", *diskConfig)
+	body, err := s.client.Post("/cloudapi/machines/addDisk", *diskConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -221,7 +221,7 @@ func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) 
 
 // Create a new Disk
 func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/disks/create", *diskConfig)
+	body, err := s.client.Post("/cloudapi/disks/create", *diskConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -231,13 +231,13 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 
 // Attach attaches an existing disk to a machine
 func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
-	_, err := s.client.Post("/cloudapi/machines/attachDisk", *diskAttachConfig)
+	_, err := s.client.Post("/cloudapi/machines/attachDisk", *diskAttachConfig, OperationalActionTimeout)
 	return err
 }
 
 // Detach detaches an existing disk from a machine
 func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
-	_, err := s.client.Post("/cloudapi/machines/detachDisk", *diskAttachConfig)
+	_, err := s.client.Post("/cloudapi/machines/detachDisk", *diskAttachConfig, OperationalActionTimeout)
 	return err
 }
 
@@ -245,7 +245,7 @@ func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
 func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 	switch {
 	case diskConfig.Size != 0:
-		_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
+		_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig, OperationalActionTimeout)
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 		fallthrough
 
 	case diskConfig.IOPS != 0:
-		_, err := s.client.Post("/cloudapi/disks/limitIO", *diskConfig)
+		_, err := s.client.Post("/cloudapi/disks/limitIO", *diskConfig, OperationalActionTimeout)
 		if err != nil {
 			return err
 		}
@@ -264,7 +264,7 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 
 // Delete an existing Disk
 func (s *DiskServiceOp) Delete(diskConfig *DiskDeleteConfig) error {
-	_, err := s.client.Post("/cloudapi/disks/delete", *diskConfig)
+	_, err := s.client.Post("/cloudapi/disks/delete", *diskConfig, OperationalActionTimeout)
 	return err
 }
 
@@ -277,7 +277,7 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 	}
 	diskIDMap["diskId"] = diskIDInt
 
-	body, err := s.client.Post("/cloudapi/disks/get", diskIDMap)
+	body, err := s.client.Post("/cloudapi/disks/get", diskIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -308,14 +308,14 @@ func (s *DiskServiceOp) GetByName(name string, accountID int, diskType string) (
 
 // Resize resizes a disk. Can only increase the size of a disk
 func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
-	_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
+	_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig, OperationalActionTimeout)
 	return err
 }
 
 // Expose a disk using the requested protocol (currently only NBD is supported)
 // via the cloudspace specified in the DiskExposeConfig.
 func (s *DiskServiceOp) Expose(diskExposeConfig *DiskExposeConfig) (*DiskExposeInfo, error) {
-	jsonOut, err := s.client.Post("/cloudapi/disks/expose", *diskExposeConfig)
+	jsonOut, err := s.client.Post("/cloudapi/disks/expose", *diskExposeConfig, OperationalActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -332,6 +332,6 @@ func (s *DiskServiceOp) Expose(diskExposeConfig *DiskExposeConfig) (*DiskExposeI
 // Unexpose a previously exposed disk. Unexposing a non-exposed disk returns an
 // error.
 func (s *DiskServiceOp) Unexpose(diskUnexposeConfig *DiskUnexposeConfig) error {
-	_, err := s.client.Post("/cloudapi/disks/unexpose", *diskUnexposeConfig)
+	_, err := s.client.Post("/cloudapi/disks/unexpose", *diskUnexposeConfig, OperationalActionTimeout)
 	return err
 }

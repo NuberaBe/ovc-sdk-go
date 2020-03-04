@@ -149,7 +149,7 @@ func (s *MachineServiceOp) List(cloudSpaceID int) (*MachineList, error) {
 	cloudSpaceIDMap := make(map[string]interface{})
 	cloudSpaceIDMap["cloudspaceId"] = cloudSpaceID
 
-	body, err := s.client.Post("/cloudapi/machines/list", cloudSpaceIDMap)
+	body, err := s.client.Post("/cloudapi/machines/list", cloudSpaceIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
 		return nil, err
 	}
 
-	body, err := s.client.Post("/cloudapi/machines/get", machineIDMap)
+	body, err := s.client.Post("/cloudapi/machines/get", machineIDMap, OperationalActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (s *MachineServiceOp) GetByReferenceID(referenceID string) (*MachineInfo, e
 	referenceIDMap := make(map[string]interface{})
 	referenceIDMap["referenceId"] = referenceID
 
-	body, err := s.client.Post("/cloudapi/machines/getByReferenceId", referenceIDMap)
+	body, err := s.client.Post("/cloudapi/machines/getByReferenceId", referenceIDMap, OperationalActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (s *MachineServiceOp) GetByReferenceID(referenceID string) (*MachineInfo, e
 
 // Create a new machine
 func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/machines/create", *machineConfig)
+	body, err := s.client.Post("/cloudapi/machines/create", *machineConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -228,9 +228,9 @@ func (s *MachineServiceOp) Create(machineConfig *MachineConfig) (string, error) 
 	return string(body), nil
 }
 
-// Create a new "empty" machine (= not based on an existing image)
+// CreateEmpty a new "empty" machine (= not based on an existing image)
 func (s *MachineServiceOp) CreateEmpty(emptyMachineConfig *EmptyMachineConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/machines/createEmptyMachine", *emptyMachineConfig)
+	body, err := s.client.Post("/cloudapi/machines/createEmptyMachine", *emptyMachineConfig, ModelActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -240,7 +240,7 @@ func (s *MachineServiceOp) CreateEmpty(emptyMachineConfig *EmptyMachineConfig) (
 
 // Update an existing machine
 func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/machines/update", *machineConfig)
+	body, err := s.client.Post("/cloudapi/machines/update", *machineConfig, ModelActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -250,7 +250,7 @@ func (s *MachineServiceOp) Update(machineConfig *MachineConfig) (string, error) 
 
 // Resize an existing machine
 func (s *MachineServiceOp) Resize(machineConfig *MachineConfig) (string, error) {
-	body, err := s.client.Post("/cloudapi/machines/resize", *machineConfig)
+	body, err := s.client.Post("/cloudapi/machines/resize", *machineConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
 	}
@@ -260,7 +260,7 @@ func (s *MachineServiceOp) Resize(machineConfig *MachineConfig) (string, error) 
 
 // Delete an existing machine
 func (s *MachineServiceOp) Delete(machineConfig *MachineConfig) error {
-	_, err := s.client.Post("/cloudapi/machines/delete", *machineConfig)
+	_, err := s.client.Post("/cloudapi/machines/delete", *machineConfig, OperationalActionTimeout)
 	return err
 }
 
@@ -270,7 +270,7 @@ func (s *MachineServiceOp) DeleteByID(machineID int) error {
 	machineMap["machineId"] = machineID
 	machineMap["permanently"] = true
 
-	_, err := s.client.Post("/cloudapi/machines/delete", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/delete", machineMap, OperationalActionTimeout)
 	return err
 }
 
@@ -280,7 +280,7 @@ func (s *MachineServiceOp) Stop(machineID int, force bool) error {
 	machineMap["machineId"] = machineID
 	machineMap["stop"] = force
 
-	_, err := s.client.Post("/cloudapi/machines/stop", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/stop", machineMap, OperationalActionTimeout)
 	return err
 }
 
@@ -292,7 +292,7 @@ func (s *MachineServiceOp) Start(machineID int, diskID int) error {
 		machineMap["diskId"] = diskID
 	}
 
-	_, err := s.client.Post("/cloudapi/machines/start", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/start", machineMap, OperationalActionTimeout)
 	return err
 }
 
@@ -302,7 +302,7 @@ func (s *MachineServiceOp) Template(machineID int, templateName string) error {
 	machineMap["machineId"] = machineID
 	machineMap["templateName"] = templateName
 
-	_, err := s.client.Post("/cloudapi/machines/createTemplate", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/createTemplate", machineMap, DataActionTimeout)
 	return err
 }
 
@@ -312,7 +312,7 @@ func (s *MachineServiceOp) Shutdown(machineID int) error {
 	machineMap["machineId"] = machineID
 	machineMap["force"] = false
 
-	_, err := s.client.Post("/cloudapi/machines/stop", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/stop", machineMap, OperationalActionTimeout)
 	return err
 }
 
@@ -323,7 +323,7 @@ func (s *MachineServiceOp) AddExternalIP(machineID int, externalNetworkID int) e
 	if externalNetworkID != 0 {
 		machineMap["externalNetworkId"] = externalNetworkID
 	}
-	_, err := s.client.Post("/cloudapi/machines/attachExternalNetwork", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/attachExternalNetwork", machineMap, OperationalActionTimeout)
 	return err
 }
 
@@ -338,6 +338,6 @@ func (s *MachineServiceOp) DeleteExternalIP(machineID int, externalNetworkID int
 		}
 	}
 
-	_, err := s.client.Post("/cloudapi/machines/detachExternalNetwork", machineMap)
+	_, err := s.client.Post("/cloudapi/machines/detachExternalNetwork", machineMap, OperationalActionTimeout)
 	return err
 }

@@ -57,7 +57,7 @@ func (s *ExternalNetworkServiceOp) Get(id string) (*ExternalNetworkInfo, error) 
 		return nil, err
 	}
 
-	body, err := s.client.Post("/cloudapi/externalnetwork/get", externalNetworkIDMap)
+	body, err := s.client.Post("/cloudapi/externalnetwork/get", externalNetworkIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (s *ExternalNetworkServiceOp) List(accountID int) (*ExternalNetworkList, er
 	accountIDMap := make(map[string]interface{})
 	accountIDMap["accountId"] = accountID
 
-	body, err := s.client.Post("/cloudapi/externalnetwork/list", accountIDMap)
+	body, err := s.client.Post("/cloudapi/externalnetwork/list", accountIDMap, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}

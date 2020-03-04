@@ -94,7 +94,7 @@ func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig)
 		portForwardingConfig.PublicPort = s.getRandomPublicPort(portForwardingConfig)
 	}
 
-	_, err := s.client.Post("/cloudapi/portforwarding/create", *portForwardingConfig)
+	_, err := s.client.Post("/cloudapi/portforwarding/create", *portForwardingConfig, OperationalActionTimeout)
 	if err != nil {
 		return 0, err
 	}
@@ -104,19 +104,19 @@ func (s *ForwardingServiceOp) Create(portForwardingConfig *PortForwardingConfig)
 
 // Update an existing portforward
 func (s *ForwardingServiceOp) Update(portForwardingConfig *PortForwardingConfig) error {
-	_, err := s.client.Post("/cloudapi/portforwarding/updateByPort", *portForwardingConfig)
+	_, err := s.client.Post("/cloudapi/portforwarding/updateByPort", *portForwardingConfig, OperationalActionTimeout)
 	return err
 }
 
 // Delete an existing portforward
 func (s *ForwardingServiceOp) Delete(portForwardingConfig *PortForwardingConfig) error {
-	_, err := s.client.Post("/cloudapi/portforwarding/deleteByPort", *portForwardingConfig)
+	_, err := s.client.Post("/cloudapi/portforwarding/deleteByPort", *portForwardingConfig, OperationalActionTimeout)
 	return err
 }
 
 // List all portforwards
 func (s *ForwardingServiceOp) List(portForwardingConfig *PortForwardingConfig) (*PortForwardingList, error) {
-	body, err := s.client.Post("/cloudapi/portforwarding/list", *portForwardingConfig)
+	body, err := s.client.Post("/cloudapi/portforwarding/list", *portForwardingConfig, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (s *ForwardingServiceOp) DeleteByPort(publicPort int, publicIP string, clou
 	pfMap["publicPort"] = publicPort
 	pfMap["cloudspaceId"] = cloudSpaceID
 
-	_, err := s.client.Post("/cloudapi/portforwarding/deleteByPort", pfMap)
+	_, err := s.client.Post("/cloudapi/portforwarding/deleteByPort", pfMap, OperationalActionTimeout)
 	return err
 }
 
