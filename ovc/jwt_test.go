@@ -93,7 +93,7 @@ func TestGetClaim(t *testing.T) {
 
 func TestIsExpired(t *testing.T) {
 	log := logrus.New()
-	logger := log.WithField("source", "OpenvCloud client JWT manager test")
+	logger := LogrusAdapter{log.WithField("source", "OpenvCloud client JWT manager test")}
 
 	// Expired an hour ago
 	tokenStr, err := createJWT(t, -time.Hour, "", nil)

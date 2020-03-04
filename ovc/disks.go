@@ -1,10 +1,9 @@
 package ovc
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"net/http"
+	"fmt"
 	"strconv"
 )
 
@@ -85,6 +84,86 @@ type DiskList []struct {
 	AccountID   int         `json:"accountId"`
 }
 
+// DiskExposeProtocolNBD is a constant representing the storage protocol NBD
+// (Network Block Device)
+const DiskExposeProtocolNBD = "nbd"
+
+// DiskExposeConfig is used to request that a given disk is exposed via a given
+// cloudspace and protocol
+type DiskExposeConfig struct {
+	Protocol     string `json:"-"`
+	DiskID       int    `json:"diskId"`
+	CloudSpaceID int    `json:"cloudspaceId"`
+	IOPS         int    `json:"iops"`
+}
+
+// DiskEndPointDescriptor is an interface that a type representing a storage
+// protocol endpoint shall implement to facilitate accessing protocol specific
+// information in DiskExposeInfo
+type DiskEndPointDescriptor interface {
+	Protocol() string
+}
+
+// NBDDiskEndPointDescriptor contains NBD specific information on how to
+// access a disk exposed as a Network Block Device
+type NBDDiskEndPointDescriptor struct {
+	Address string `json:"address"`
+	Port    int    `json:"port"`
+	Name    string `json:"name"`
+	User    string `json:"user"`
+	Psk     string `json:"psk"`
+}
+
+// Protocol implements DiskEndPointDescriptor.Protocol
+func (*NBDDiskEndPointDescriptor) Protocol() string {
+	return DiskExposeProtocolNBD
+}
+
+// DiskExposeInfo contains information on how to access a disk exposed using
+// a given storage protocol.
+type DiskExposeInfo struct {
+	Protocol string                 `json:"protocol"`
+	EndPoint DiskEndPointDescriptor `json:"endpoint"`
+}
+
+// UnmarshalJSON deserializes DiskInfo from a buffer containing a JSON
+// representation of DiskInfo
+func (i *DiskExposeInfo) UnmarshalJSON(b []byte) error {
+	type ProtoProbe struct {
+		Protocol string `json:"protocol"`
+	}
+
+	probe := ProtoProbe{}
+	err := json.Unmarshal(b, &probe)
+	if err != nil {
+		return err
+	}
+
+	if probe.Protocol != DiskExposeProtocolNBD {
+		return fmt.Errorf("Unknown disk expose protocol \"%s\"", probe.Protocol)
+	}
+
+	type NBDDesc struct {
+		EndPoint NBDDiskEndPointDescriptor `json:"endpoint"`
+	}
+
+	i.Protocol = probe.Protocol
+
+	desc := NBDDesc{}
+	err = json.Unmarshal(b, &desc)
+	if err != nil {
+		return err
+	}
+
+	i.EndPoint = &desc.EndPoint
+	return nil
+}
+
+// DiskUnexposeConfig is used to request that a given exposed disk is exposed
+type DiskUnexposeConfig struct {
+	DiskID int `json:"diskId"`
+}
+
 // DiskService is an interface for interfacing with the Disk
 // endpoints of the OVC API
 type DiskService interface {
@@ -98,6 +177,8 @@ type DiskService interface {
 	Detach(*DiskAttachConfig) error
 	Update(*DiskConfig) error
 	Delete(*DiskDeleteConfig) error
+	Expose(*DiskExposeConfig) (*DiskExposeInfo, error)
+	Unexpose(*DiskUnexposeConfig) error
 }
 
 // DiskServiceOp handles communication with the disk related methods of the
@@ -113,18 +194,12 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 	if len(diskType) != 0 {
 		diskMap["type"] = diskType
 	}
-	diskJSON, err := json.Marshal(diskMap)
+
+	body, err := s.client.Post("/cloudapi/disks/list", diskMap)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/list", bytes.NewBuffer(diskJSON))
-	if err != nil {
-		return nil, err
-	}
-	body, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+
 	disks := new(DiskList)
 	err = json.Unmarshal(body, &disks)
 	if err != nil {
@@ -136,15 +211,7 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 
 // CreateAndAttach a new Disk and attaches it to a machine
 func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/addDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return "", err
-	}
-	body, err := s.client.Do(req)
+	body, err := s.client.Post("/cloudapi/machines/addDisk", *diskConfig)
 	if err != nil {
 		return "", err
 	}
@@ -154,15 +221,7 @@ func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) 
 
 // Create a new Disk
 func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/create", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return "", err
-	}
-	body, err := s.client.Do(req)
+	body, err := s.client.Post("/cloudapi/disks/create", *diskConfig)
 	if err != nil {
 		return "", err
 	}
@@ -172,44 +231,21 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 
 // Attach attaches an existing disk to a machine
 func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/attachDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/machines/attachDisk", *diskAttachConfig)
 	return err
 }
 
 // Detach detaches an existing disk from a machine
 func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskAttachConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/machines/detachDisk", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/machines/detachDisk", *diskAttachConfig)
 	return err
 }
 
 // Update updates an existing disk
 func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-
 	switch {
 	case diskConfig.Size != 0:
-		err := s.resize(diskConfigJSON)
+		_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
 		if err != nil {
 			return err
 		}
@@ -217,7 +253,7 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 		fallthrough
 
 	case diskConfig.IOPS != 0:
-		err := s.updateIOPS(diskConfigJSON)
+		_, err := s.client.Post("/cloudapi/disks/limitIO", *diskConfig)
 		if err != nil {
 			return err
 		}
@@ -226,39 +262,9 @@ func (s *DiskServiceOp) Update(diskConfig *DiskConfig) error {
 	return nil
 }
 
-func (s *DiskServiceOp) resize(diskConfigJSON []byte) error {
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
-	return err
-}
-
-func (s *DiskServiceOp) updateIOPS(diskConfigJSON []byte) error {
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/limitIO", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
-	return err
-}
-
 // Delete an existing Disk
 func (s *DiskServiceOp) Delete(diskConfig *DiskDeleteConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/delete", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
-
+	_, err := s.client.Post("/cloudapi/disks/delete", *diskConfig)
 	return err
 }
 
@@ -270,15 +276,8 @@ func (s *DiskServiceOp) Get(diskID string) (*DiskInfo, error) {
 		return nil, err
 	}
 	diskIDMap["diskId"] = diskIDInt
-	diskIDJson, err := json.Marshal(diskIDMap)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/get", bytes.NewBuffer(diskIDJson))
-	if err != nil {
-		return nil, err
-	}
-	body, err := s.client.Do(req)
+
+	body, err := s.client.Post("/cloudapi/disks/get", diskIDMap)
 	if err != nil {
 		return nil, err
 	}
@@ -309,15 +308,30 @@ func (s *DiskServiceOp) GetByName(name string, accountID int, diskType string) (
 
 // Resize resizes a disk. Can only increase the size of a disk
 func (s *DiskServiceOp) Resize(diskConfig *DiskConfig) error {
-	diskConfigJSON, err := json.Marshal(*diskConfig)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", s.client.ServerURL+"/cloudapi/disks/resize", bytes.NewBuffer(diskConfigJSON))
-	if err != nil {
-		return err
-	}
-	_, err = s.client.Do(req)
+	_, err := s.client.Post("/cloudapi/disks/resize", *diskConfig)
+	return err
+}
 
+// Expose a disk using the requested protocol (currently only NBD is supported)
+// via the cloudspace specified in the DiskExposeConfig.
+func (s *DiskServiceOp) Expose(diskExposeConfig *DiskExposeConfig) (*DiskExposeInfo, error) {
+	jsonOut, err := s.client.Post("/cloudapi/disks/expose", *diskExposeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	exposeInfo := &DiskExposeInfo{}
+	err = json.Unmarshal(jsonOut, exposeInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return exposeInfo, nil
+}
+
+// Unexpose a previously exposed disk. Unexposing a non-exposed disk returns an
+// error.
+func (s *DiskServiceOp) Unexpose(diskUnexposeConfig *DiskUnexposeConfig) error {
+	_, err := s.client.Post("/cloudapi/disks/unexpose", *diskUnexposeConfig)
 	return err
 }
