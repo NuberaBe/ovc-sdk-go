@@ -2,8 +2,10 @@
 
 # OpenvCloud client
 
-Golang client for [OpenvCloud (OVC)](https://docs.gig.tech).  
-Mainly intended for the [OVC Terraform provider](https://github.com/gig-tech/terraform-provider-ovc).
+Golang client for the GIG.tech [G8](https://docs.gig.tech) edge cloud platform.
+Used by 
+- [G8 Terraform provider](https://github.com/gig-tech/terraform-provider-ovc).
+- [G8 Kubernetes CSI driver](https://github.com/gig-tech/ovc-disk-csi-driver).
 
 ## Installation
 

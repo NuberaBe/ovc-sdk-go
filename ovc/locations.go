@@ -30,7 +30,7 @@ type LocationList []LocationInfo
 
 // List lists all locations of the G8
 func (s *LocationServiceOp) List() (*LocationList, error) {
-	body, err := s.client.PostRaw("/cloudapi/locations/list", nil)
+	body, err := s.client.PostRaw("/cloudapi/locations/list", nil, ModelActionTimeout)
 	if err != nil {
 		return nil, err
 	}
