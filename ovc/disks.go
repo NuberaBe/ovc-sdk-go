@@ -211,6 +211,8 @@ func (s *DiskServiceOp) List(accountID int, diskType string) (*DiskList, error) 
 
 // CreateAndAttach a new Disk and attaches it to a machine
 func (s *DiskServiceOp) CreateAndAttach(diskConfig *DiskConfig) (string, error) {
+	defer ReleaseLock(diskConfig.MachineID)
+	GetLock(diskConfig.MachineID)
 	body, err := s.client.Post("/cloudapi/machines/addDisk", *diskConfig, OperationalActionTimeout)
 	if err != nil {
 		return "", err
@@ -231,13 +233,23 @@ func (s *DiskServiceOp) Create(diskConfig *DiskConfig) (string, error) {
 
 // Attach attaches an existing disk to a machine
 func (s *DiskServiceOp) Attach(diskAttachConfig *DiskAttachConfig) error {
+	defer ReleaseLock(diskAttachConfig.MachineID)
+	GetLock(diskAttachConfig.MachineID)
 	_, err := s.client.Post("/cloudapi/machines/attachDisk", *diskAttachConfig, OperationalActionTimeout)
 	return err
 }
 
 // Detach detaches an existing disk from a machine
 func (s *DiskServiceOp) Detach(diskAttachConfig *DiskAttachConfig) error {
+	s.client.logger.Debugf("Detaching disk %d from machine %d.", diskAttachConfig.DiskID, diskAttachConfig.MachineID)
+	defer ReleaseLock(diskAttachConfig.MachineID)
+	GetLock(diskAttachConfig.MachineID)
 	_, err := s.client.Post("/cloudapi/machines/detachDisk", *diskAttachConfig, OperationalActionTimeout)
+	if err == nil {
+		s.client.logger.Debugf("Detaching disk %d from machine %d completed.", diskAttachConfig.DiskID, diskAttachConfig.MachineID)
+	} else {
+		s.client.logger.Debugf("Detaching disk %d from machine %d failed.", diskAttachConfig.DiskID, diskAttachConfig.MachineID)
+	}
 	return err
 }
 
