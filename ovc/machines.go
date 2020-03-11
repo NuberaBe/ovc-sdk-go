@@ -6,34 +6,40 @@ import (
 	"strconv"
 )
 
+// Nic basic information
+type Nic struct {
+	Status      string `json:"status"`
+	MacAddress  string `json:"macAddress"`
+	ReferenceID string `json:"referenceId"`
+	DeviceName  string `json:"deviceName"`
+	Type        string `json:"type"`
+	Params      string `json:"params"`
+	NetworkID   int    `json:"networkId"`
+	GUID        string `json:"guid"`
+	IPAddress   string `json:"ipAddress"`
+}
+
+// Machine basic information
+type Machine struct {
+	Status       string `json:"status"`
+	StackID      int    `json:"stackId"`
+	UpdateTime   int    `json:"updateTime"`
+	ReferenceID  string `json:"referenceId"`
+	Name         string `json:"name"`
+	Nics         []*Nic `json:"nics"`
+	SizeID       int    `json:"sizeId"`
+	Disks        []int  `json:"disks"`
+	CreationTime int    `json:"creationTime"`
+	ImageID      int    `json:"imageId"`
+	Storage      int    `json:"storage"`
+	Vcpus        int    `json:"vcpus"`
+	Memory       int    `json:"memory"`
+	ID           int    `json:"id"`
+}
+
 // MachineList is a list of machines
 // Returned when using the List method
-type MachineList []struct {
-	Status      string `json:"status"`
-	StackID     int    `json:"stackId"`
-	UpdateTime  int    `json:"updateTime"`
-	ReferenceID string `json:"referenceId"`
-	Name        string `json:"name"`
-	Nics        []struct {
-		Status      string `json:"status"`
-		MacAddress  string `json:"macAddress"`
-		ReferenceID string `json:"referenceId"`
-		DeviceName  string `json:"deviceName"`
-		Type        string `json:"type"`
-		Params      string `json:"params"`
-		NetworkID   int    `json:"networkId"`
-		GUID        string `json:"guid"`
-		IPAddress   string `json:"ipAddress"`
-	} `json:"nics"`
-	SizeID       int   `json:"sizeId"`
-	Disks        []int `json:"disks"`
-	CreationTime int   `json:"creationTime"`
-	ImageID      int   `json:"imageId"`
-	Storage      int   `json:"storage"`
-	Vcpus        int   `json:"vcpus"`
-	Memory       int   `json:"memory"`
-	ID           int   `json:"id"`
-}
+type MachineList []*Machine
 
 // MachineConfig is used when creating a machine
 type MachineConfig struct {
@@ -121,7 +127,7 @@ type MachineInfo struct {
 // endpoints of the OVC API
 type MachineService interface {
 	List(int) (*MachineList, error)
-	Get(string) (*MachineInfo, error)
+	Get(int) (*MachineInfo, error)
 	GetByName(string, string) (*MachineInfo, error)
 	GetByReferenceID(string) (*MachineInfo, error)
 	Create(*MachineConfig) (string, error)
@@ -164,13 +170,12 @@ func (s *MachineServiceOp) List(cloudSpaceID int) (*MachineList, error) {
 }
 
 // Get individual machine
-func (s *MachineServiceOp) Get(id string) (*MachineInfo, error) {
+func (s *MachineServiceOp) Get(id int) (*MachineInfo, error) {
+	defer ReleaseLock(id)
+	GetLock(id)
 	machineIDMap := make(map[string]interface{})
 	var err error
-	machineIDMap["machineId"], err = strconv.Atoi(id)
-	if err != nil {
-		return nil, err
-	}
+	machineIDMap["machineId"] = id
 
 	body, err := s.client.Post("/cloudapi/machines/get", machineIDMap, OperationalActionTimeout)
 	if err != nil {
@@ -198,7 +203,7 @@ func (s *MachineServiceOp) GetByName(name string, cloudspaceID string) (*Machine
 	}
 	for _, mc := range *machines {
 		if mc.Name == name {
-			return s.client.Machines.Get(strconv.Itoa(mc.ID))
+			return s.client.Machines.Get(mc.ID)
 		}
 	}
 
@@ -215,7 +220,12 @@ func (s *MachineServiceOp) GetByReferenceID(referenceID string) (*MachineInfo, e
 		return nil, err
 	}
 
-	return s.client.Machines.Get(string(body))
+	machineID, err := strconv.Atoi(string(body))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Machines.Get(machineID)
 }
 
 // Create a new machine
