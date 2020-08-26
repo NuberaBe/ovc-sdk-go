@@ -62,6 +62,7 @@ type EmptyMachineConfig struct {
 	Description  string `json:"description,omitempty"`
 	Memory       int    `json:"memory,omitempty"`
 	Vcpus        int    `json:"vcpus,omitempty"`
+    Imagetype    string `json:"imagetype,omitempty"`
 	Disksize     int    `json:"disksize,omitempty"`
 	DataDisks    []int  `json:"datadisks,omitempty"`
 	Userdata     string `json:"userdata,omitempty"`
