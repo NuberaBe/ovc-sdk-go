@@ -1,4 +1,4 @@
-module github.com/gig-tech/ovc-sdk-go/v3
+module github.com/gig-tech/ovc-sdk-go/v4
 
 go 1.11
 
