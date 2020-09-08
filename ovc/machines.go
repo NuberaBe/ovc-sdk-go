@@ -56,6 +56,7 @@ type MachineConfig struct {
 // EmptyMachineConfig is used when creating a new "empty" machine.
 // A machine is considered "empty" if it's not created from an
 // existing image.
+// Imagetype can be one of the following strings: Windows, Unix, Linux, BSD, Darwin or Other
 type EmptyMachineConfig struct {
 	CloudspaceID int    `json:"cloudspaceId,omitempty"`
 	Name         string `json:"name,omitempty"`
